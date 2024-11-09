@@ -23,5 +23,6 @@
 	"Key turn on/off panel": "Клавиша на включение\nи выключение панели",
 	"NetWorth_Drag": "< Перенести >",
 	"The button captures the panel\nfor dragging on the screen.\nIf the button is not set, the panel can only\nbe dragged using the mouse": "Кнопка захватывает панель\nдля перетаскивания по экрану.\nЕсли кнопка не установлена,\nпанель можно перетаскивать только с помощью мыши",
-	"Key mode turn on/off panel": "Режимы работы бинда\nна включение и выключение панели"
+	"Key mode turn on/off panel": "Режимы работы бинда\nна включение и выключение панели",
+	"Outlined text": "Текст с обводкой"
 }

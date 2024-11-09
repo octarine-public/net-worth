@@ -11,7 +11,6 @@ export class TotalNetWorthMenu {
 	public readonly State: Menu.Toggle
 	public readonly Difference: Menu.Toggle
 	public readonly TextColor: Menu.ColorPicker
-
 	constructor(tree: Menu.Node) {
 		const menu = tree.AddNode("Between teams", `${Paths.Icons.chat_arrow_down}`)
 		menu.SortNodes = false
@@ -50,7 +49,7 @@ export class MenuManager {
 		readonly Y: Menu.Slider
 		Vector: Vector2
 	}
-
+	public readonly OutlinedText: Menu.Toggle
 	constructor() {
 		const entries = Menu.AddEntry("Visual")
 		const menu = entries.AddNode("Net worth", `${Paths.Icons.chat_arrow_grow}`)
@@ -81,6 +80,7 @@ export class MenuManager {
 		const settingsTree = menu.AddNode("Settings heroes", "menu/icons/settings.svg")
 		settingsTree.SortNodes = false
 
+		this.OutlinedText = settingsTree.AddToggle("Outlined text", true)
 		this.Size = settingsTree.AddSlider("Size", 0, 0, 20)
 		this.Opacity = settingsTree.AddSlider("Opacity", 0, 0, 70)
 		this.Position = menu.AddVector2(
@@ -89,7 +89,6 @@ export class MenuManager {
 			new Vector2(0, 0),
 			new Vector2(1920, 1080)
 		)
-
 		this.Total = new TotalNetWorthMenu(menu)
 		this.Reset = menu.AddButton("Reset", "Reset settings")
 		this.Ally.OnValue(call => (this.Local.IsHidden = !call.value))

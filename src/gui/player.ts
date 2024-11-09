@@ -26,7 +26,8 @@ export class PlayerGUI {
 	private readonly scaleGradientSize = new Vector2()
 	private readonly scalePositionPanel = new Vector2()
 	private readonly scaleUnitImageSize = new Vector2()
-
+	private readonly redTeamColor = new Color(227, 67, 62)
+	private readonly greenTeamColor = new Color(86, 179, 55)
 	constructor(private readonly menu: MenuManager) {
 		this.menu.Size.OnValue(() => this.updateScaleSize())
 		this.menu.Position.X.OnValue(() => this.updateScalePosition())
@@ -181,14 +182,14 @@ export class PlayerGUI {
 		RendererSDK.TextByFlags(
 			text,
 			newPosition,
-			Color.White.SetA(opacity + 20),
-			1.6,
+			Color.White,
+			2.4,
 			flags,
 			500,
 			RendererSDK.DefaultFontName,
 			true,
 			false,
-			false
+			this.menu.OutlinedText.value
 		)
 	}
 
@@ -231,14 +232,15 @@ export class PlayerGUI {
 	) {
 		opacity = Math.min(opacity, 200)
 		const localTeam = GameState.LocalTeam
+
 		const gradientColor =
 			localTeam === Team.Observer
 				? team === Team.Dire
-					? Color.Red.SetA(opacity)
-					: Color.Green.SetA(opacity)
+					? this.redTeamColor.SetA(opacity)
+					: this.greenTeamColor.SetA(opacity)
 				: isEnemy
-					? Color.Red.SetA(opacity)
-					: Color.Green.SetA(opacity)
+					? this.redTeamColor.SetA(opacity)
+					: this.greenTeamColor.SetA(opacity)
 		this.Image(
 			`${this.path}/networth_gradient.svg`,
 			position,
