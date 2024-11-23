@@ -2,7 +2,6 @@ import {
 	Color,
 	GameState,
 	GUIInfo,
-	ImageData,
 	Input,
 	Menu,
 	PlayerCustomData,
@@ -28,6 +27,7 @@ export class PlayerGUI {
 	private readonly scaleUnitImageSize = new Vector2()
 	private readonly redTeamColor = new Color(227, 67, 62)
 	private readonly greenTeamColor = new Color(86, 179, 55)
+
 	constructor(private readonly menu: MenuManager) {
 		this.menu.Size.OnValue(() => this.updateScaleSize())
 		this.menu.Position.X.OnValue(() => this.updateScalePosition())
@@ -68,8 +68,7 @@ export class PlayerGUI {
 
 		// player image
 		let count = 0
-		const heroName = player.HeroName ?? ""
-		const texturePath = ImageData.GetHeroTexture(heroName)
+		const texturePath = player.Hero?.TexturePath() ?? ""
 		const opacity = Math.round((1 - menu.Opacity.value / 100) * 255)
 
 		const imageRect = position.Clone()
@@ -97,7 +96,7 @@ export class PlayerGUI {
 			gPosition.Contains(Input.CursorOnScreen) ||
 			gPosition.Contains(Input.CursorOnScreen)
 
-		this.Text(gPosition, player, opacity, netWorthByItem)
+		this.Text(gPosition, player, netWorthByItem)
 
 		count++
 		enabledPlayers.push(count)
@@ -163,14 +162,9 @@ export class PlayerGUI {
 		this.restartScale()
 	}
 
-	public ResetSettings() {
-		this.restartScale()
-	}
-
 	protected Text(
 		position: Rectangle,
 		player: PlayerCustomData,
-		opacity: number,
 		netWorthByItem?: number
 	) {
 		const newPosition = position.Clone()

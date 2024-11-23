@@ -92,14 +92,14 @@ export class TeamGUI {
 
 		const imageTeam =
 			localTeam === team || localTeam === Team.Observer
-				? ImageData.Paths.Icons.arrow_gold_dif
-				: ImageData.Paths.Icons.arrow_plus_stats_red
+				? ImageData.Icons.arrow_gold_dif
+				: ImageData.Icons.arrow_plus_stats_red
 
 		RendererSDK.Image(imageTeam, position.pos1, -1, iconSize, Color.White)
 	}
 
 	private renderGoldIcon(rec: Rectangle, iconSize: Vector2) {
-		const image = ImageData.Paths.Icons.gold_large
+		const image = ImageData.Icons.gold_large
 		const position = rec.Clone()
 		const iconPosition = position.pos1.AddScalarX(position.pos2.x)
 		RendererSDK.Image(image, iconPosition, -1, iconSize, Color.White)
@@ -107,7 +107,7 @@ export class TeamGUI {
 
 	private renderBackground(position: Rectangle) {
 		RendererSDK.Image(
-			ImageData.Paths.Icons.chat_preview_opacity_mask,
+			ImageData.Icons.chat_preview_opacity_mask,
 			position.pos1,
 			-1,
 			position.Size,
@@ -116,7 +116,7 @@ export class TeamGUI {
 			undefined,
 			false,
 			new Vector2(),
-			RendererSDK.GetImageSize(ImageData.Paths.Icons.chat_preview_opacity_mask)
+			RendererSDK.GetImageSize(ImageData.Icons.chat_preview_opacity_mask)
 		)
 	}
 

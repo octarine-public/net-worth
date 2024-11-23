@@ -1,18 +1,11 @@
-import {
-	Color,
-	ImageData,
-	Menu,
-	Vector2,
-	VKeys
-} from "github.com/octarine-public/wrapper/index"
-import { Paths } from "github.com/octarine-public/wrapper/wrapper/Data/ImageData"
+import { Color, ImageData, Menu, Vector2 } from "github.com/octarine-public/wrapper/index"
 
 export class TotalNetWorthMenu {
 	public readonly State: Menu.Toggle
 	public readonly Difference: Menu.Toggle
 	public readonly TextColor: Menu.ColorPicker
 	constructor(tree: Menu.Node) {
-		const menu = tree.AddNode("Between teams", `${Paths.Icons.chat_arrow_down}`)
+		const menu = tree.AddNode("Between teams", `${ImageData.Icons.chat_arrow_down}`)
 		menu.SortNodes = false
 		this.State = menu.AddToggle("State", true)
 		this.Difference = menu.AddToggle("Show only difference", true)
@@ -28,7 +21,6 @@ export class TotalNetWorthMenu {
 
 export class MenuManager {
 	public IsToggled = true
-	public readonly Reset: Menu.Button
 	public readonly State: Menu.Toggle
 	public readonly Ally: Menu.Toggle
 	public readonly Enemy: Menu.Toggle
@@ -52,7 +44,7 @@ export class MenuManager {
 	public readonly OutlinedText: Menu.Toggle
 	constructor() {
 		const entries = Menu.AddEntry("Visual")
-		const menu = entries.AddNode("Net worth", `${Paths.Icons.chat_arrow_grow}`)
+		const menu = entries.AddNode("Net worth", `${ImageData.Icons.chat_arrow_grow}`)
 		menu.SortNodes = false
 
 		this.State = menu.AddToggle("State", true)
@@ -62,7 +54,7 @@ export class MenuManager {
 		this.Local = menu.AddToggle("Your net worth", false, "Show your own net worth")
 		this.Local.IsHidden = true
 
-		const treeBinds = menu.AddNode("Hotkeys", ImageData.Paths.Icons.icon_svg_keyboard)
+		const treeBinds = menu.AddNode("Hotkeys", ImageData.Icons.icon_svg_keyboard)
 		treeBinds.SortNodes = false
 		this.ToggleKey = treeBinds.AddKeybind("Key", "None", "Key turn on/off panel")
 		this.TouchKeyPanel = treeBinds.AddKeybind(
@@ -90,26 +82,7 @@ export class MenuManager {
 			new Vector2(1920, 1080)
 		)
 		this.Total = new TotalNetWorthMenu(menu)
-		this.Reset = menu.AddButton("Reset", "Reset settings")
 		this.Ally.OnValue(call => (this.Local.IsHidden = !call.value))
 		this.ToggleKey.OnRelease(() => (this.IsToggled = !this.IsToggled))
-	}
-
-	public ResetSettings() {
-		this.Total.ResetSettings()
-		this.Size.value = this.Size.defaultValue
-		this.Opacity.value = this.Opacity.defaultValue
-		this.Position.X.value = this.Position.X.defaultValue
-		this.Position.Y.value = this.Position.Y.defaultValue
-		this.State.value = this.State.defaultValue
-		this.Ally.value = this.Ally.defaultValue
-		this.Local.value = this.Local.defaultValue
-		this.Enemy.value = this.Enemy.defaultValue
-		this.TouchKeyPanel.assignedKey = VKeys.CONTROL
-		this.TouchKeyPanel.assignedKeyStr = this.TouchKeyPanel.defaultKey
-		this.ToggleKey.assignedKey = -1
-		this.ToggleKey.assignedKeyStr = this.ToggleKey.defaultKey
-		this.ModeKey.SelectedID = this.ModeKey.defaultValue
-		this.Local.IsHidden = !this.Ally.value
 	}
 }

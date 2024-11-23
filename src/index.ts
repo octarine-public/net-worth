@@ -9,11 +9,8 @@ import {
 	GUIInfo,
 	Input,
 	InputEventSDK,
-	NotificationsSDK,
 	PlayerCustomData,
 	Rectangle,
-	ResetSettingsUpdated,
-	Sleeper,
 	Team,
 	VMouseKeys
 } from "github.com/octarine-public/wrapper/index"
@@ -23,16 +20,20 @@ import { PlayerGUI } from "./gui/player"
 import { TeamGUI } from "./gui/team"
 import { MenuManager } from "./menu"
 
-const bootstrap = new (class CBootstrap {
+new (class CNetWorth {
 	private readonly menu = new MenuManager()
-	private readonly sleeper = new Sleeper()
-	private readonly playerGUI: PlayerGUI
-	private readonly teamGUI = new TeamGUI()
 	private readonly players: PlayerCustomData[] = []
 
+	private readonly teamGUI = new TeamGUI()
+	private readonly playerGUI = new PlayerGUI(this.menu)
+
 	constructor() {
-		this.playerGUI = new PlayerGUI(this.menu)
-		this.menu.Reset.OnValue(() => this.resetSettings())
+		EventsSDK.on("Draw", this.Draw.bind(this))
+		EventsSDK.on("GameEnded", this.GameChanged.bind(this))
+		EventsSDK.on("GameStarted", this.GameChanged.bind(this))
+		InputEventSDK.on("MouseKeyUp", this.MouseKeyUp.bind(this))
+		InputEventSDK.on("MouseKeyDown", this.MouseKeyDown.bind(this))
+		EventsSDK.on("PlayerCustomDataUpdated", this.PlayerCustomDataUpdated.bind(this))
 	}
 
 	private get state() {
@@ -172,7 +173,7 @@ const bootstrap = new (class CBootstrap {
 			this.players.remove(entity)
 			return
 		}
-		if (this.players.every(x => x.PlayerID !== entity.PlayerID)) {
+		if (!this.players.some(x => x.PlayerID === entity.PlayerID)) {
 			this.players.push(entity)
 		}
 	}
@@ -214,33 +215,9 @@ const bootstrap = new (class CBootstrap {
 		return position.Contains(this.playerGUI.TotalPosition.pos1)
 	}
 
-	private resetSettings() {
-		if (this.sleeper.Sleeping("ResetSettings")) {
-			return
-		}
-		this.menu.ResetSettings()
-		this.playerGUI.ResetSettings()
-		this.sleeper.Sleep(1000, "ResetSettings")
-		NotificationsSDK.Push(new ResetSettingsUpdated())
-	}
-
 	private calculateBy(player: PlayerCustomData) {
 		return player.Hero === undefined || !this.menu.OnlyItems.value
 			? player.NetWorth
 			: player.ItemsGold
 	}
 })()
-
-EventsSDK.on("Draw", () => bootstrap.Draw())
-
-EventsSDK.on("GameEnded", () => bootstrap.GameChanged())
-
-EventsSDK.on("GameStarted", () => bootstrap.GameChanged())
-
-InputEventSDK.on("MouseKeyUp", key => bootstrap.MouseKeyUp(key))
-
-InputEventSDK.on("MouseKeyDown", key => bootstrap.MouseKeyDown(key))
-
-EventsSDK.on("PlayerCustomDataUpdated", player =>
-	bootstrap.PlayerCustomDataUpdated(player)
-)
