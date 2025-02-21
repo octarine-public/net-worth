@@ -131,9 +131,12 @@ new (class CNetWorth {
 
 		this.playerGUI.UpdateSetPosition(position)
 
-		for (let index = orderByPlayers.length - 1; index > -1; index--) {
-			const player = orderByPlayers[index],
-				itemCosts = this.calculateBy(player)
+		for (let i = orderByPlayers.length - 1; i > -1; i--) {
+			const player = orderByPlayers[i]
+			if (player.Hero === undefined) {
+				continue
+			}
+			const itemCosts = this.calculateBy(player)
 			// for Team GUI
 			switch (player.Team) {
 				case Team.Dire:
