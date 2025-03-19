@@ -33,13 +33,13 @@ new (class CNetWorth {
 		EventsSDK.on("GameStarted", this.GameChanged.bind(this))
 		InputEventSDK.on("MouseKeyUp", this.MouseKeyUp.bind(this))
 		InputEventSDK.on("MouseKeyDown", this.MouseKeyDown.bind(this))
+		EventsSDK.on("WindowSizeChanged", this.WindowSizeChanged.bind(this))
 		EventsSDK.on("PlayerCustomDataUpdated", this.PlayerCustomDataUpdated.bind(this))
 	}
 
 	private get state() {
 		return this.menu.State.value
 	}
-
 	private get gameState() {
 		return GameRules?.GameState ?? DOTAGameState.DOTA_GAMERULES_STATE_INIT
 	}
@@ -47,36 +47,30 @@ new (class CNetWorth {
 	private get isPostGame() {
 		return this.gameState === DOTAGameState.DOTA_GAMERULES_STATE_POST_GAME
 	}
-
 	private get isDisconnect() {
 		return this.gameState === DOTAGameState.DOTA_GAMERULES_STATE_DISCONNECT
 	}
-
 	private get isInGame() {
 		return (
 			this.gameState >= DOTAGameState.DOTA_GAMERULES_STATE_PRE_GAME &&
 			this.gameState <= DOTAGameState.DOTA_GAMERULES_STATE_GAME_IN_PROGRESS
 		)
 	}
-
 	private get isStrategyTime() {
 		return (
 			this.gameState <= DOTAGameState.DOTA_GAMERULES_STATE_STRATEGY_TIME ||
 			this.gameState >= DOTAGameState.DOTA_GAMERULES_STATE_DISCONNECT
 		)
 	}
-
 	private get isShowCase() {
 		return this.gameState === DOTAGameState.DOTA_GAMERULES_STATE_TEAM_SHOWCASE
 	}
-
 	private get isScoreboardPosition() {
 		if (!Input.IsScoreboardOpen) {
 			return false
 		}
 		return this.shouldPosition(GUIInfo.Scoreboard.Background)
 	}
-
 	private get isShopPosition() {
 		if (!Input.IsShopOpen) {
 			return false
@@ -94,7 +88,6 @@ new (class CNetWorth {
 			GUIInfo.OpenShopLarge.ItemCombines
 		)
 	}
-
 	private get isToggleKeyMode() {
 		const menu = this.menu
 		const toggleKey = menu.ToggleKey
@@ -108,11 +101,9 @@ new (class CNetWorth {
 			(keyModeID === KeyMode.Pressed && !toggleKey.isPressed)
 		)
 	}
-
 	private get canDrawPlayerGUI() {
 		return !this.isShopPosition && !this.isScoreboardPosition && !this.isToggleKeyMode
 	}
-
 	public Draw() {
 		if (!this.state || !this.isInGame || this.isPostGame || this.isDisconnect) {
 			return
@@ -170,7 +161,6 @@ new (class CNetWorth {
 
 		this.teamGUI.Draw(this.menu.Total, radiant, dire)
 	}
-
 	public PlayerCustomDataUpdated(entity: PlayerCustomData) {
 		if (!entity.IsValid || entity.IsSpectator) {
 			this.players.remove(entity)
@@ -180,26 +170,25 @@ new (class CNetWorth {
 			this.players.push(entity)
 		}
 	}
-
 	public MouseKeyUp(key: VMouseKeys) {
 		if (!this.shouldInput(key)) {
 			return true
 		}
 		return this.playerGUI.MouseKeyUp()
 	}
-
 	public MouseKeyDown(key: VMouseKeys) {
 		if (!this.shouldInput(key)) {
 			return true
 		}
 		return this.playerGUI.MouseKeyDown()
 	}
-
 	public GameChanged() {
 		this.teamGUI.GameChanged()
 		this.playerGUI.GameChanged()
 	}
-
+	protected WindowSizeChanged() {
+		this.playerGUI.WindowSizeChanged()
+	}
 	private shouldInput(key: VMouseKeys) {
 		if (!this.state || this.isPostGame || key !== VMouseKeys.MK_LBUTTON) {
 			return false
@@ -209,15 +198,12 @@ new (class CNetWorth {
 		}
 		return true
 	}
-
 	private shouldPosition(...positions: Rectangle[]) {
 		return positions.some(position => this.isContainsPanel(position))
 	}
-
 	private isContainsPanel(position: Rectangle) {
 		return position.Contains(this.playerGUI.TotalPosition.pos1)
 	}
-
 	private calculateBy(player: PlayerCustomData) {
 		return player.Hero === undefined || !this.menu.OnlyItems.value
 			? player.NetWorth

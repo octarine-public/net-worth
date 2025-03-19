@@ -11,12 +11,6 @@ export class TotalNetWorthMenu {
 		this.Difference = menu.AddToggle("Show only difference", true)
 		this.TextColor = menu.AddColorPicker("Text color", new Color(242, 195, 30))
 	}
-
-	public ResetSettings() {
-		this.State.value = this.State.defaultValue
-		this.Difference.value = this.Difference.defaultValue
-		this.TextColor.SelectedColor.CopyFrom(this.TextColor.defaultColor)
-	}
 }
 
 export class MenuManager {

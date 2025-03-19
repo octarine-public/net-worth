@@ -18,6 +18,7 @@ export class PlayerGUI {
 	public readonly TotalPosition = new Rectangle()
 
 	private dragging = false
+	private windowReady = false
 	private isUnderRectangle = false
 	private readonly path = "github.com/octarine-public/net-worth/scripts_files"
 
@@ -123,7 +124,7 @@ export class PlayerGUI {
 	}
 
 	public MouseKeyUp() {
-		if (!this.dragging) {
+		if (!this.dragging || !this.windowReady) {
 			return true
 		}
 		this.dragging = false
@@ -132,7 +133,7 @@ export class PlayerGUI {
 	}
 
 	public MouseKeyDown() {
-		if (this.dragging) {
+		if (this.dragging || !this.windowReady) {
 			return true
 		}
 		const menu = this.menu.TouchKeyPanel
@@ -153,6 +154,11 @@ export class PlayerGUI {
 	public CalculateBottomSize(enabledPlayers: number[], position: Rectangle) {
 		this.TotalPosition.Width += this.scaleGradientSize.x
 		this.TotalPosition.Height -= position.Height - enabledPlayers.length
+	}
+
+	public WindowSizeChanged() {
+		this.windowReady = true
+		this.restartScale()
 	}
 
 	public GameChanged() {
@@ -271,6 +277,9 @@ export class PlayerGUI {
 	}
 
 	private updateMinMaxPanelPosition(position: Vector2) {
+		if (!this.windowReady) {
+			return
+		}
 		const wSize = RendererSDK.WindowSize
 		const totalSize = this.TotalPosition.Size
 		const newPosition = position
