@@ -26,6 +26,7 @@ export class MenuManager {
 	public readonly ToggleKey: Menu.KeyBind
 	public readonly TouchKeyPanel: Menu.KeyBind
 
+	public readonly Tree: Menu.Node
 	public readonly Size: Menu.Slider
 	public readonly Total: TotalNetWorthMenu
 
@@ -36,19 +37,32 @@ export class MenuManager {
 		Vector: Vector2
 	}
 	public readonly OutlinedText: Menu.Toggle
-	constructor() {
-		const entries = Menu.AddEntry("Visual")
-		const menu = entries.AddNode("Net worth", `${ImageData.Icons.chat_arrow_grow}`)
-		menu.SortNodes = false
 
-		this.State = menu.AddToggle("State", true)
-		this.Ally = menu.AddToggle("Allies", false)
-		this.Enemy = menu.AddToggle("Enemies", false)
-		this.OnlyItems = menu.AddToggle("Only items", true, "Calculate only by items")
-		this.Local = menu.AddToggle("Your net worth", false, "Show your own net worth")
+	private readonly entries = Menu.AddEntry("Visual")
+
+	constructor() {
+		this.Tree = this.entries.AddNode(
+			"Net worth",
+			`${ImageData.Icons.chat_arrow_grow}`
+		)
+		this.Tree.SortNodes = false
+
+		this.State = this.Tree.AddToggle("State", true)
+		this.Ally = this.Tree.AddToggle("Allies", false)
+		this.Enemy = this.Tree.AddToggle("Enemies", false)
+		this.OnlyItems = this.Tree.AddToggle(
+			"Only items",
+			true,
+			"Calculate only by items"
+		)
+		this.Local = this.Tree.AddToggle(
+			"Your net worth",
+			false,
+			"Show your own net worth"
+		)
 		this.Local.IsHidden = true
 
-		const treeBinds = menu.AddNode("Hotkeys", ImageData.Icons.icon_svg_keyboard)
+		const treeBinds = this.Tree.AddNode("Hotkeys", ImageData.Icons.icon_svg_keyboard)
 		treeBinds.SortNodes = false
 		this.ToggleKey = treeBinds.AddKeybind("Key", "None", "Key turn on/off panel")
 		this.TouchKeyPanel = treeBinds.AddKeybind(
@@ -63,19 +77,22 @@ export class MenuManager {
 			"Key mode turn on/off panel"
 		)
 
-		const settingsTree = menu.AddNode("Settings heroes", "menu/icons/settings.svg")
+		const settingsTree = this.Tree.AddNode(
+			"Settings heroes",
+			"menu/icons/settings.svg"
+		)
 		settingsTree.SortNodes = false
 
 		this.OutlinedText = settingsTree.AddToggle("Outlined text", true)
 		this.Size = settingsTree.AddSlider("Size", 0, 0, 20)
 		this.Opacity = settingsTree.AddSlider("Opacity", 0, 0, 70)
-		this.Position = menu.AddVector2(
+		this.Position = this.Tree.AddVector2(
 			"Settings heroes",
 			new Vector2(0, 309),
 			new Vector2(0, 0),
 			new Vector2(1920, 1080)
 		)
-		this.Total = new TotalNetWorthMenu(menu)
+		this.Total = new TotalNetWorthMenu(this.Tree)
 		this.Ally.OnValue(call => (this.Local.IsHidden = !call.value))
 		this.ToggleKey.OnRelease(() => (this.IsToggled = !this.IsToggled))
 	}

@@ -35,6 +35,7 @@ new (class CNetWorth {
 		InputEventSDK.on("MouseKeyDown", this.MouseKeyDown.bind(this))
 		EventsSDK.on("WindowSizeChanged", this.WindowSizeChanged.bind(this))
 		EventsSDK.on("PlayerCustomDataUpdated", this.PlayerCustomDataUpdated.bind(this))
+		EventsSDK.on("MenuConfigChanged", this.MenuConfigChanged.bind(this))
 	}
 
 	private get state() {
@@ -188,6 +189,9 @@ new (class CNetWorth {
 	}
 	protected WindowSizeChanged() {
 		this.playerGUI.WindowSizeChanged()
+	}
+	protected MenuConfigChanged(obj: { [key: string]: any }) {
+		this.playerGUI.MenuConfigChanged(obj)
 	}
 	private shouldInput(key: VMouseKeys) {
 		if (!this.state || this.isPostGame || key !== VMouseKeys.MK_LBUTTON) {

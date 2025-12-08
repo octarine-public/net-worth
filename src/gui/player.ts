@@ -14,10 +14,17 @@ import {
 
 import { MenuManager } from "../menu"
 
+interface IConfigData {
+	Visual?: {
+		[key: string]: object | undefined
+	}
+}
+
 export class PlayerGUI {
 	public readonly TotalPosition = new Rectangle()
 
 	private dragging = false
+	private configReady = false
 	private windowReady = false
 	private isUnderRectangle = false
 	private readonly path = "github.com/octarine-public/net-worth/scripts_files"
@@ -124,7 +131,7 @@ export class PlayerGUI {
 	}
 
 	public MouseKeyUp() {
-		if (!this.dragging || !this.windowReady) {
+		if (!this.dragging || !this.windowReady || !this.configReady) {
 			return true
 		}
 		this.dragging = false
@@ -133,7 +140,7 @@ export class PlayerGUI {
 	}
 
 	public MouseKeyDown() {
-		if (this.dragging || !this.windowReady) {
+		if (this.dragging || !this.windowReady || !this.configReady) {
 			return true
 		}
 		const menu = this.menu.TouchKeyPanel
@@ -155,12 +162,19 @@ export class PlayerGUI {
 		this.TotalPosition.Width += this.scaleGradientSize.x
 		this.TotalPosition.Height -= position.Height - enabledPlayers.length
 	}
-
 	public WindowSizeChanged() {
 		this.windowReady = true
 		this.restartScale()
 	}
-
+	public MenuConfigChanged(obj: { [key: string]: any }) {
+		const config = obj as IConfigData
+		if (config.Visual === undefined) {
+			return
+		}
+		if (config.Visual[this.menu.Tree.InternalName] !== undefined) {
+			this.configReady = true
+		}
+	}
 	public GameChanged() {
 		this.dragging = false
 		this.isUnderRectangle = false
@@ -277,7 +291,7 @@ export class PlayerGUI {
 	}
 
 	private updateMinMaxPanelPosition(position: Vector2) {
-		if (!this.windowReady) {
+		if (!this.windowReady || !this.configReady) {
 			return
 		}
 		const wSize = RendererSDK.WindowSize
