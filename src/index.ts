@@ -6,17 +6,14 @@ import {
 	EventsSDK,
 	GameRules,
 	GameState,
-	GUIInfo,
-	Input,
 	InputEventSDK,
 	PlayerCustomData,
-	Rectangle,
 	Team,
+	UIPanelManager,
 	VMouseKeys
 } from "github.com/octarine-public/wrapper/index"
 
-import { KeyMode } from "./enums/KeyMode"
-import { PlayerGUI } from "./gui/player"
+import { PlayerGUI, PlayerNetworthPanel } from "./gui/player"
 import { TeamGUI } from "./gui/team"
 import { MenuManager } from "./menu"
 
@@ -26,6 +23,7 @@ new (class CNetWorth {
 
 	private readonly teamGUI = new TeamGUI()
 	private readonly playerGUI = new PlayerGUI(this.menu)
+	private readonly panel = new PlayerNetworthPanel(this.menu, this.players)
 
 	constructor() {
 		EventsSDK.on("Draw", this.Draw.bind(this))
@@ -36,6 +34,13 @@ new (class CNetWorth {
 		EventsSDK.on("WindowSizeChanged", this.WindowSizeChanged.bind(this))
 		EventsSDK.on("PlayerCustomDataUpdated", this.PlayerCustomDataUpdated.bind(this))
 		EventsSDK.on("MenuConfigChanged", this.MenuConfigChanged.bind(this))
+
+		EventsSDK.on("GameEnded", this.GameEnded.bind(this))
+		EventsSDK.on("GameStarted", this.GameStarted.bind(this))
+
+		this.menu.Size.OnValue(() => this.panel.OnChangeMenu())
+		this.menu.Position.X.OnValue(() => this.panel.OnChangeMenu())
+		this.menu.Position.Y.OnValue(() => this.panel.OnChangeMenu())
 	}
 
 	private get state() {
@@ -66,63 +71,16 @@ new (class CNetWorth {
 	private get isShowCase() {
 		return this.gameState === DOTAGameState.DOTA_GAMERULES_STATE_TEAM_SHOWCASE
 	}
-	private get isScoreboardPosition() {
-		if (!Input.IsScoreboardOpen) {
-			return false
-		}
-		return this.shouldPosition(GUIInfo.Scoreboard.Background)
-	}
-	private get isShopPosition() {
-		if (!Input.IsShopOpen) {
-			return false
-		}
-		return this.shouldPosition(
-			GUIInfo.OpenShopMini.Items,
-			GUIInfo.OpenShopMini.Header,
-			GUIInfo.OpenShopMini.GuideFlyout,
-			GUIInfo.OpenShopMini.ItemCombines,
-			GUIInfo.OpenShopMini.PinnedItems,
-			GUIInfo.OpenShopLarge.Items,
-			GUIInfo.OpenShopLarge.Header,
-			GUIInfo.OpenShopLarge.GuideFlyout,
-			GUIInfo.OpenShopLarge.PinnedItems,
-			GUIInfo.OpenShopLarge.ItemCombines
-		)
-	}
-	private get isToggleKeyMode() {
-		const menu = this.menu
-		const toggleKey = menu.ToggleKey
-		// if toggle key is not assigned (setting to "None")
-		if (toggleKey.assignedKey < 0) {
-			return false
-		}
-		const keyModeID = menu.ModeKey.SelectedID
-		return (
-			(keyModeID === KeyMode.Toggled && !menu.IsToggled) ||
-			(keyModeID === KeyMode.Pressed && !toggleKey.isPressed)
-		)
-	}
-	private get canDrawPlayerGUI() {
-		return !this.isShopPosition && !this.isScoreboardPosition && !this.isToggleKeyMode
-	}
 	public Draw() {
 		if (!this.state || !this.isInGame || this.isPostGame || this.isDisconnect) {
 			return
 		}
-
 		if (GameState.UIState !== DOTAGameUIState.DOTA_GAME_UI_DOTA_INGAME) {
 			return
 		}
-
 		let dire = 0
 		let radiant = 0
-		const position = new Rectangle()
-		const enabledPlayers: number[] = []
-
 		const orderByPlayers = this.players.orderBy(x => this.calculateBy(x))
-
-		this.playerGUI.UpdateSetPosition(position)
-
 		for (let i = orderByPlayers.length - 1; i > -1; i--) {
 			const player = orderByPlayers[i]
 			if (player.Hero === undefined) {
@@ -138,28 +96,12 @@ new (class CNetWorth {
 					radiant += itemCosts
 					break
 			}
-			if (player.IsAbandoned || player.IsDisconnected) {
-				continue
-			}
-			if (this.canDrawPlayerGUI) {
-				this.playerGUI.Draw(
-					player,
-					enabledPlayers,
-					position,
-					this.menu.OnlyItems.value ? itemCosts : undefined
-				)
-			}
 		}
-
-		this.playerGUI.CalculateBottomSize(enabledPlayers, position)
-		this.playerGUI.UpdatePositionAfter()
-
 		// Team GUI
 		const isObserver = GameState.LocalTeam === Team.Observer
 		if (this.isShowCase || this.isStrategyTime || isObserver) {
 			return
 		}
-
 		this.teamGUI.Draw(this.menu.Total, radiant, dire)
 	}
 	public PlayerCustomDataUpdated(entity: PlayerCustomData) {
@@ -187,6 +129,12 @@ new (class CNetWorth {
 		this.teamGUI.GameChanged()
 		this.playerGUI.GameChanged()
 	}
+	protected GameStarted() {
+		UIPanelManager.Register(this.panel)
+	}
+	protected GameEnded() {
+		UIPanelManager.Unregister(this.panel)
+	}
 	protected WindowSizeChanged() {
 		this.playerGUI.WindowSizeChanged()
 	}
@@ -201,12 +149,6 @@ new (class CNetWorth {
 			return false
 		}
 		return true
-	}
-	private shouldPosition(...positions: Rectangle[]) {
-		return positions.some(position => this.isContainsPanel(position))
-	}
-	private isContainsPanel(position: Rectangle) {
-		return position.Contains(this.playerGUI.TotalPosition.pos1)
 	}
 	private calculateBy(player: PlayerCustomData) {
 		return player.Hero === undefined || !this.menu.OnlyItems.value

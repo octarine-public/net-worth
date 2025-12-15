@@ -64,10 +64,10 @@ export class MenuManager {
 
 		const treeBinds = this.Tree.AddNode("Hotkeys", ImageData.Icons.icon_svg_keyboard)
 		treeBinds.SortNodes = false
-		this.ToggleKey = treeBinds.AddKeybind("Key", "None", "Key turn on/off panel")
+		this.ToggleKey = treeBinds.AddKeybind("Key", undefined, "Key turn on/off panel")
 		this.TouchKeyPanel = treeBinds.AddKeybind(
 			"Touch panel",
-			"Ctrl",
+			undefined,
 			"The button captures the panel\nfor dragging on the screen.\nIf the button is not set, the panel can only\nbe dragged using the mouse"
 		)
 		this.ModeKey = treeBinds.AddDropdown(
