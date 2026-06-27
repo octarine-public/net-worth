@@ -28,7 +28,7 @@ new (class CNetWorth {
 	private readonly playerGUI = new PlayerGUI(this.menu)
 
 	constructor() {
-		EventsSDK.on("Draw", this.Draw.bind(this))
+		EventsSDK.on("Draw2D", this.Draw.bind(this))
 		EventsSDK.on("GameEnded", this.GameChanged.bind(this))
 		EventsSDK.on("GameStarted", this.GameChanged.bind(this))
 		InputEventSDK.on("MouseKeyUp", this.MouseKeyUp.bind(this))

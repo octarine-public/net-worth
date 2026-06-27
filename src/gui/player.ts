@@ -119,6 +119,8 @@ export class PlayerGUI {
 			this.updateMinMaxPanelPosition(position)
 			return
 		}
+		// NOTE: force redraw the 2D layer every frame while dragging for smooth FPS
+		RendererSDK.InvalidateDraw2D()
 		this.BackgroundDrag()
 		const wSize = RendererSDK.WindowSize
 		const mousePos = Input.CursorOnScreen
