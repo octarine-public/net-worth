@@ -1,20 +1,5 @@
 import "./translations"
 
-import {
-	DOTAGameState,
-	DOTAGameUIState,
-	EventsSDK,
-	GameRules,
-	GameState,
-	GUIInfo,
-	Input,
-	InputEventSDK,
-	PlayerCustomData,
-	Rectangle,
-	Team,
-	VMouseKeys
-} from "github.com/octarine-public/wrapper/index"
-
 import { KeyMode } from "./enums/KeyMode"
 import { PlayerGUI } from "./gui/player"
 import { TeamGUI } from "./gui/team"
@@ -42,7 +27,7 @@ new (class CNetWorth {
 		return this.menu.State.value
 	}
 	private get gameState() {
-		return GameRules?.GameState ?? DOTAGameState.DOTA_GAMERULES_STATE_INIT
+		return Dota2SDK.GameRules?.GameState ?? DOTAGameState.DOTA_GAMERULES_STATE_INIT
 	}
 
 	private get isPostGame() {
@@ -67,13 +52,13 @@ new (class CNetWorth {
 		return this.gameState === DOTAGameState.DOTA_GAMERULES_STATE_TEAM_SHOWCASE
 	}
 	private get isScoreboardPosition() {
-		if (!Input.IsScoreboardOpen) {
+		if (!InputManager.IsScoreboardOpen) {
 			return false
 		}
 		return this.shouldPosition(GUIInfo.Scoreboard.Background)
 	}
 	private get isShopPosition() {
-		if (!Input.IsShopOpen) {
+		if (!InputManager.IsShopOpen) {
 			return false
 		}
 		return this.shouldPosition(

@@ -1,16 +1,3 @@
-import {
-	Color,
-	GameState,
-	GUIInfo,
-	Input,
-	Menu,
-	PlayerCustomData,
-	Rectangle,
-	RendererSDK,
-	Team,
-	TextFlags,
-	Vector2
-} from "github.com/octarine-public/wrapper/index"
 
 import { MenuManager } from "../menu"
 
@@ -100,9 +87,9 @@ export class PlayerGUI {
 		this.Gradient(gPosition, isEnemy, player.Team, opacity, dragging)
 
 		this.isUnderRectangle =
-			position.Contains(Input.CursorOnScreen) ||
-			gPosition.Contains(Input.CursorOnScreen) ||
-			gPosition.Contains(Input.CursorOnScreen)
+			position.Contains(InputManager.CursorOnScreen) ||
+			gPosition.Contains(InputManager.CursorOnScreen) ||
+			gPosition.Contains(InputManager.CursorOnScreen)
 
 		this.Text(gPosition, player, netWorthByItem)
 
@@ -121,7 +108,7 @@ export class PlayerGUI {
 		}
 		this.BackgroundDrag()
 		const wSize = RendererSDK.WindowSize
-		const mousePos = Input.CursorOnScreen
+		const mousePos = InputManager.CursorOnScreen
 		const toPosition = mousePos
 			.SubtractForThis(this.draggingOffset)
 			.Min(wSize.Subtract(this.TotalPosition.Size))
@@ -148,7 +135,7 @@ export class PlayerGUI {
 		if (!isTouch) {
 			return true
 		}
-		const mouse = Input.CursorOnScreen
+		const mouse = InputManager.CursorOnScreen
 		const recPos = this.TotalPosition
 		if (!mouse.IsUnderRectangle(recPos.x, recPos.y, recPos.Width, recPos.Height)) {
 			return true

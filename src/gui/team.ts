@@ -1,14 +1,3 @@
-import {
-	Color,
-	GameState,
-	GUIInfo,
-	ImageData,
-	Rectangle,
-	RendererSDK,
-	Team,
-	TextFlags,
-	Vector2
-} from "github.com/octarine-public/wrapper/index"
 
 import { TotalNetWorthMenu } from "../menu"
 
