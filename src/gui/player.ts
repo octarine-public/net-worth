@@ -1,325 +1,234 @@
-
 import { MenuManager } from "../menu"
 
-interface IConfigData {
-	Visual?: {
-		[key: string]: object | undefined
-	}
+const HEADER_H = 30
+const ROW_H = 26
+const FONT = 13
+const NAME_W = 96
+const PORTRAIT_W = 32
+const PORTRAIT_H = 18
+const STRIPE_W = 3
+const STRIPE_GAP = 5
+const TEXT_GAP = 8
+const BOTTOM_PAD = 4
+const VALUE_RESERVE = "000 000"
+
+interface INetWorthRow {
+	texture: string
+	name: string
+	value: string
+	color: Color
+	isRed: boolean
 }
 
+const PREVIEW_ROWS = [
+	{
+		texture: ImageData.GetHeroTexture("npc_dota_hero_juggernaut"),
+		value: "12 345",
+		color: Color.PlayerColorRadiant[0],
+		isRed: false
+	},
+	{
+		texture: ImageData.GetHeroTexture("npc_dota_hero_axe"),
+		value: "9 876",
+		color: Color.PlayerColorDire[0],
+		isRed: true
+	}
+] as const
+
 export class PlayerGUI {
-	public readonly TotalPosition = new Rectangle()
+	private rowCount = 0
+	private readonly rows: INetWorthRow[] = []
+	private readonly size = new Vector2()
+	private readonly box = new Rectangle()
+	private readonly imagePos = new Vector2()
+	private readonly imageSize = new Vector2()
+	private readonly panel: MenuSDK.OverlayPanel
 
-	private dragging = false
-	private configReady = false
-	private windowReady = false
-	private isUnderRectangle = false
-	private readonly path = "github.com/octarine-public/net-worth/scripts_files"
-
-	private readonly draggingOffset = new Vector2()
-	private readonly scaleGradientSize = new Vector2()
-	private readonly scalePositionPanel = new Vector2()
-	private readonly scaleUnitImageSize = new Vector2()
-	private readonly redTeamColor = new Color(227, 67, 62)
-	private readonly greenTeamColor = new Color(86, 179, 55)
+	private readonly drawContent = (origin: Vector2) => {
+		const box = this.box
+		box.pos1.CopyFrom(origin)
+		box.pos2.SetVector(origin.x + this.size.x, origin.y + this.size.y)
+		MenuSDK.HudCard.Frame(box)
+		const headerH = MenuSDK.hudH(HEADER_H)
+		const rowH = MenuSDK.hudH(ROW_H)
+		MenuSDK.HudCard.Header(
+			box,
+			headerH,
+			Menu.Localization.Localize("Net worth"),
+			undefined,
+			true
+		)
+		for (let i = 0; i < this.rowCount; i++) {
+			this.row(this.rows[i], box, headerH + rowH * i, rowH)
+		}
+	}
 
 	constructor(private readonly menu: MenuManager) {
-		this.menu.Size.OnValue(() => this.updateScaleSize())
-		this.menu.Position.X.OnValue(() => this.updateScalePosition())
-		this.menu.Position.Y.OnValue(() => this.updateScalePosition())
+		this.panel = new MenuSDK.OverlayPanel(
+			menu.Overlay,
+			"hud-net-worth",
+			MenuSDK.EPanelLife.MenuBound
+		)
 	}
 
-	public UpdateSetPosition(position: Rectangle) {
-		const positionPanel = this.scalePositionPanel
-		const unitImageSize = this.scaleUnitImageSize
-
-		position.x = positionPanel.x
-		position.y = positionPanel.y
-		position.Width = unitImageSize.x
-		position.Height = unitImageSize.y
-
-		this.TotalPosition.pos1.CopyFrom(position.pos1)
-		this.TotalPosition.pos2.CopyFrom(position.pos2)
-	}
-
-	public Draw(
-		player: PlayerCustomData,
-		enabledPlayers: number[],
-		position: Rectangle,
-		netWorthByItem?: number
-	) {
-		const gap = 2
-		const menu = this.menu
-		const ally = menu.Ally.value
-		const enemy = menu.Enemy.value
-
-		const dragging = this.dragging
-		const isEnemy = player.IsEnemy()
-
-		const hideLocal = !menu.Local.value && player.IsLocalPlayer
-		if ((isEnemy && !enemy) || (!isEnemy && !ally) || hideLocal) {
-			return
-		}
-
-		// player image
+	public Draw(players: PlayerCustomData[]): void {
 		let count = 0
-		const texturePath = player.Hero?.TexturePath() ?? ""
-		const opacity = Math.round((1 - menu.Opacity.value / 100) * 255)
-
-		const imageRect = position.Clone()
-		this.FieldRect(imageRect, Color.Black.SetA(opacity), dragging)
-		imageRect.x += gap / 2
-		imageRect.y += gap / 2
-		imageRect.Width -= gap
-		imageRect.Height -= gap
-		this.Image(texturePath, imageRect, Color.White.SetA(opacity), dragging)
-
-		// player image border left
-		const leftBorder = imageRect.Clone()
-		leftBorder.Width = GUIInfo.ScaleWidth(gap)
-		this.FieldRect(leftBorder, player.Color.Clone().SetA(opacity), dragging)
-
-		// player gradient border right
-		const gPosition = position.Clone()
-		gPosition.x += position.Width
-		gPosition.Width = this.scaleGradientSize.x
-		gPosition.Height = this.scaleGradientSize.y
-		this.Gradient(gPosition, isEnemy, player.Team, opacity, dragging)
-
-		this.isUnderRectangle =
-			position.Contains(InputManager.CursorOnScreen) ||
-			gPosition.Contains(InputManager.CursorOnScreen) ||
-			gPosition.Contains(InputManager.CursorOnScreen)
-
-		this.Text(gPosition, player, netWorthByItem)
-
-		count++
-		enabledPlayers.push(count)
-		position.AddY(position.Height + gap / 2)
-		this.TotalPosition.Height += position.Height
-	}
-
-	public UpdatePositionAfter() {
-		const position = this.scalePositionPanel
-		if (!this.dragging) {
-			// NOTE: update full panel if added new unit's or items
-			this.updateMinMaxPanelPosition(position)
-			return
+		for (const player of players) {
+			const hero = player.Hero
+			if (hero === undefined) {
+				continue
+			}
+			this.setRow(
+				count++,
+				ImageData.GetHeroTexture(hero.Name),
+				player.PlayerName ?? "",
+				this.serializeNetWorth(this.valueOf(player)),
+				player.Color,
+				this.isRed(player)
+			)
 		}
-		this.BackgroundDrag()
-		const wSize = RendererSDK.WindowSize
-		const mousePos = InputManager.CursorOnScreen
-		const toPosition = mousePos
-			.SubtractForThis(this.draggingOffset)
-			.Min(wSize.Subtract(this.TotalPosition.Size))
-			.Max(0)
-			.CopyTo(position)
-		this.saveNewPosition(toPosition)
+		this.rowCount = count
+		this.render()
 	}
 
-	public MouseKeyUp() {
-		if (!this.dragging || !this.windowReady || !this.configReady) {
-			return true
+	public DrawPreview(): void {
+		for (let i = 0; i < PREVIEW_ROWS.length; i++) {
+			const row = PREVIEW_ROWS[i]
+			this.setRow(
+				i,
+				row.texture,
+				Menu.Localization.Localize("Preview"),
+				row.value,
+				row.color,
+				row.isRed
+			)
 		}
-		this.dragging = false
-		Menu.Base.SaveConfigASAP = true
-		return true
+		this.rowCount = PREVIEW_ROWS.length
+		this.render()
 	}
 
-	public MouseKeyDown() {
-		if (this.dragging || !this.windowReady || !this.configReady) {
-			return true
-		}
-		const menu = this.menu.TouchKeyPanel
-		const isTouch = menu.isPressed || menu.assignedKey === -1
-		if (!isTouch) {
-			return true
-		}
-		const mouse = InputManager.CursorOnScreen
-		const recPos = this.TotalPosition
-		if (!mouse.IsUnderRectangle(recPos.x, recPos.y, recPos.Width, recPos.Height)) {
-			return true
-		}
-		this.dragging = true
-		mouse.Subtract(recPos.pos1).CopyTo(this.draggingOffset)
-		return false
+	public MouseKeyDown(key: VMouseKeys): boolean {
+		return this.panel.MouseKeyDown(key)
 	}
 
-	public CalculateBottomSize(enabledPlayers: number[], position: Rectangle) {
-		this.TotalPosition.Width += this.scaleGradientSize.x
-		this.TotalPosition.Height -= position.Height - enabledPlayers.length
-	}
-	public WindowSizeChanged() {
-		this.windowReady = true
-		this.restartScale()
-	}
-	public MenuConfigChanged(obj: { [key: string]: any }) {
-		const config = obj as IConfigData
-		if (config.Visual === undefined) {
-			return
-		}
-		if (config.Visual[this.menu.Tree.InternalName] !== undefined) {
-			this.configReady = true
-		}
-	}
-	public GameChanged() {
-		this.dragging = false
-		this.isUnderRectangle = false
-		this.draggingOffset.toZero()
-		this.restartScale()
+	public MouseKeyUp(key: VMouseKeys): boolean {
+		return key !== VMouseKeys.MK_LBUTTON || this.panel.MouseKeyUp()
 	}
 
-	protected Text(
-		position: Rectangle,
-		player: PlayerCustomData,
-		netWorthByItem?: number
-	) {
-		const newPosition = position.Clone()
-		const text = this.isUnderRectangle
-			? this.serializePlayerName(player)
-			: this.serializeNetWorth(netWorthByItem ?? player.NetWorth)
-		newPosition.x += position.Height / 6
-		const flags = TextFlags.Center | TextFlags.Left
-		RendererSDK.TextByFlags(
-			text,
-			newPosition,
-			Color.White,
-			2.4,
-			flags,
-			500,
-			RendererSDK.DefaultFontName,
-			true,
-			false,
-			this.menu.OutlinedText.value
+	public GameChanged(): void {
+		this.panel.Reset()
+	}
+
+	public Reset(): void {
+		this.panel.Reset()
+	}
+
+	private render(): void {
+		MenuSDK.setHudScale(this.panel.Scale)
+		let valueW = MenuSDK.HudText.Width(VALUE_RESERVE, FONT, MenuSDK.HudBold)
+		for (let i = 0; i < this.rowCount; i++) {
+			valueW = Math.max(
+				valueW,
+				MenuSDK.HudText.Width(this.rows[i].value, FONT, MenuSDK.HudBold)
+			)
+		}
+		const width =
+			MenuSDK.hudW(MenuSDK.HudCard.Pad) * 2 +
+			MenuSDK.hudW(
+				STRIPE_W + STRIPE_GAP + PORTRAIT_W + TEXT_GAP + NAME_W + TEXT_GAP
+			) +
+			valueW
+		this.size.SetVector(
+			Math.round(width),
+			Math.round(
+				MenuSDK.hudH(HEADER_H) +
+					MenuSDK.hudH(ROW_H) * this.rowCount +
+					MenuSDK.hudH(BOTTOM_PAD)
+			)
+		)
+		this.panel.Draw(this.size, this.drawContent)
+	}
+
+	private row(row: INetWorthRow, box: Rectangle, offsetY: number, rowH: number): void {
+		const pad = MenuSDK.hudW(MenuSDK.HudCard.Pad)
+		const stripeW = MenuSDK.hudW(STRIPE_W)
+		const imageW = MenuSDK.hudW(PORTRAIT_W)
+		const imageH = MenuSDK.hudH(PORTRAIT_H)
+		const centerY = box.y + offsetY + rowH / 2
+		const top = Math.round(centerY - imageH / 2)
+		MenuSDK.HudCard.Plate(
+			box.x + pad,
+			top,
+			stripeW,
+			imageH,
+			stripeW / 2,
+			MenuSDK.HudColors.readable(row.color),
+			MenuSDK.hudAlpha()
+		)
+		this.imagePos.SetVector(box.x + pad + stripeW + MenuSDK.hudW(STRIPE_GAP), top)
+		this.imageSize.SetVector(imageW, imageH)
+		MenuSDK.HudCard.Image(
+			row.texture,
+			this.imagePos,
+			this.imageSize,
+			Color.WhiteReadonly,
+			MenuSDK.hudAlpha(),
+			MenuSDK.hudRadius(4)
+		)
+		const textX = this.imagePos.x + imageW + MenuSDK.hudW(TEXT_GAP)
+		MenuSDK.HudText.Left(
+			textX,
+			centerY,
+			MenuSDK.HudText.Clip(row.name, MenuSDK.hudW(NAME_W), FONT),
+			FONT,
+			MenuSDK.HudColors.title
+		)
+		MenuSDK.HudText.Right(
+			box.pos2.x - pad,
+			centerY,
+			row.value,
+			FONT,
+			row.isRed ? MenuSDK.HudColors.kill : MenuSDK.HudColors.ok,
+			MenuSDK.HudBold
 		)
 	}
 
-	protected Image(
-		path: string,
-		position: Rectangle,
-		color = Color.White,
-		grayscale?: boolean,
-		round: number = -1
-	) {
-		RendererSDK.Image(
-			path,
-			position.pos1,
-			round,
-			position.Size,
-			color,
-			undefined,
-			undefined,
-			grayscale
-		)
+	private setRow(
+		index: number,
+		texture: string,
+		name: string,
+		value: string,
+		color: Color,
+		isRed: boolean
+	): void {
+		let row = this.rows[index]
+		if (row === undefined) {
+			row = this.rows[index] = {
+				texture: "",
+				name: "",
+				value: "",
+				color: Color.White,
+				isRed: false
+			}
+		}
+		row.texture = texture
+		row.name = name
+		row.value = value
+		row.color = color
+		row.isRed = isRed
 	}
 
-	protected FieldRect(position: Rectangle, color = Color.White, grayscale?: boolean) {
-		RendererSDK.FilledRect(
-			position.pos1,
-			position.Size,
-			color,
-			undefined,
-			undefined,
-			grayscale
-		)
+	private valueOf(player: PlayerCustomData): number {
+		return this.menu.OnlyItems.value ? player.ItemsGold : player.NetWorth
 	}
 
-	protected Gradient(
-		position: Rectangle,
-		isEnemy = false,
-		team: Team,
-		opacity: number,
-		grayscale?: boolean
-	) {
-		opacity = Math.min(opacity, 200)
-		const localTeam = GameState.LocalTeam
-
-		const gradientColor =
-			localTeam === Team.Observer
-				? team === Team.Dire
-					? this.redTeamColor.SetA(opacity)
-					: this.greenTeamColor.SetA(opacity)
-				: isEnemy
-					? this.redTeamColor.SetA(opacity)
-					: this.greenTeamColor.SetA(opacity)
-		this.Image(
-			`${this.path}/networth_gradient.svg`,
-			position,
-			gradientColor,
-			grayscale
-		)
+	private isRed(player: PlayerCustomData): boolean {
+		return GameState.LocalTeam === Team.Observer
+			? player.Team === Team.Dire
+			: player.IsEnemy()
 	}
 
-	protected BackgroundDrag() {
-		const position = this.TotalPosition
-		const division = position.Height / 10 - this.menu.Size.value / 3
-		RendererSDK.FilledRect(position.pos1, position.Size, Color.Black.SetA(100))
-		RendererSDK.TextByFlags(
-			Menu.Localization.Localize("NetWorth_Drag"),
-			position,
-			Color.White,
-			division,
-			TextFlags.Center,
-			400,
-			RendererSDK.DefaultFontName,
-			true,
-			false,
-			false
-		)
-	}
-
-	private serializePlayerName(player: PlayerCustomData) {
-		const name = player.PlayerName ?? player.NetWorth.toString()
-		return name.length > 8 ? name.slice(0, 7) + "…" : name
-	}
-
-	private serializeNetWorth(netWorth: number) {
+	private serializeNetWorth(netWorth: number): string {
 		return netWorth.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1 ")
-	}
-
-	private updateMinMaxPanelPosition(position: Vector2) {
-		if (!this.windowReady || !this.configReady) {
-			return
-		}
-		const wSize = RendererSDK.WindowSize
-		const totalSize = this.TotalPosition.Size
-		const newPosition = position
-			.Min(wSize.Subtract(totalSize))
-			.Max(0)
-			.CopyTo(position)
-		this.saveNewPosition(newPosition)
-	}
-
-	private updateScaleSize() {
-		const minSize = 20
-		const sizeMenu = this.menu.Size.value
-		const size = Math.min(Math.max(sizeMenu + minSize, minSize), minSize * 2)
-		this.scaleUnitImageSize.y = this.scaleGradientSize.y = GUIInfo.ScaleHeight(size)
-
-		this.scaleGradientSize.x = GUIInfo.ScaleWidth(size * 3)
-		this.scaleUnitImageSize.x = GUIInfo.ScaleWidth(size * 1.6)
-	}
-
-	private updateScalePosition() {
-		const menuPosition = this.menu.Position
-		const valueX = Math.max(GUIInfo.ScaleWidth(menuPosition.X.value), 0)
-		this.scalePositionPanel.x = valueX
-		const valueY = Math.max(GUIInfo.ScaleHeight(menuPosition.Y.value), 0)
-		this.scalePositionPanel.y = valueY
-	}
-
-	private saveNewPosition(newPosition?: Vector2) {
-		const position = newPosition ?? this.scalePositionPanel
-		this.menu.Position.Vector = position
-			.Clone()
-			.DivideScalarX(GUIInfo.GetWidthScale())
-			.DivideScalarY(GUIInfo.GetHeightScale())
-			.RoundForThis(1)
-	}
-
-	private restartScale() {
-		this.updateScaleSize()
-		this.updateScalePosition()
-		this.saveNewPosition()
 	}
 }

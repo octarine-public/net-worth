@@ -8,9 +8,13 @@ import { MenuManager } from "./menu"
 new (class CNetWorth {
 	private readonly menu = new MenuManager()
 	private readonly players: PlayerCustomData[] = []
+	private readonly visiblePlayers: PlayerCustomData[] = []
 
 	private readonly teamGUI = new TeamGUI()
 	private readonly playerGUI = new PlayerGUI(this.menu)
+
+	private readonly byNetWorth = (a: PlayerCustomData, b: PlayerCustomData) =>
+		this.calculateBy(b) - this.calculateBy(a)
 
 	constructor() {
 		EventsSDK.on("Draw", this.Draw.bind(this))
@@ -18,9 +22,7 @@ new (class CNetWorth {
 		EventsSDK.on("GameStarted", this.GameChanged.bind(this))
 		InputEventSDK.on("MouseKeyUp", this.MouseKeyUp.bind(this))
 		InputEventSDK.on("MouseKeyDown", this.MouseKeyDown.bind(this))
-		EventsSDK.on("WindowSizeChanged", this.WindowSizeChanged.bind(this))
 		EventsSDK.on("PlayerCustomDataUpdated", this.PlayerCustomDataUpdated.bind(this))
-		EventsSDK.on("MenuConfigChanged", this.MenuConfigChanged.bind(this))
 	}
 
 	private get state() {
@@ -77,7 +79,6 @@ new (class CNetWorth {
 	private get isToggleKeyMode() {
 		const menu = this.menu
 		const toggleKey = menu.ToggleKey
-		// if toggle key is not assigned (setting to "None")
 		if (toggleKey.assignedKey < 0) {
 			return false
 		}
@@ -91,30 +92,36 @@ new (class CNetWorth {
 		return !this.isShopPosition && !this.isScoreboardPosition && !this.isToggleKeyMode
 	}
 	public Draw() {
-		if (!this.state || !this.isInGame || this.isPostGame || this.isDisconnect) {
+		if (!this.state) {
+			this.playerGUI.Reset()
+			this.teamGUI.Hide()
 			return
 		}
-
-		if (GameState.UIState !== DOTAGameUIState.DOTA_GAME_UI_DOTA_INGAME) {
+		if (
+			!this.isInGame ||
+			this.isPostGame ||
+			this.isDisconnect ||
+			GameState.UIState !== DOTAGameUIState.DOTA_GAME_UI_DOTA_INGAME
+		) {
+			this.teamGUI.Hide()
+			if (this.menu.IsOpen) {
+				this.playerGUI.DrawPreview()
+			} else {
+				this.playerGUI.Reset()
+			}
 			return
 		}
 
 		let dire = 0
 		let radiant = 0
-		const position = new Rectangle()
-		const enabledPlayers: number[] = []
+		const visible = this.visiblePlayers
+		visible.length = 0
 
-		const orderByPlayers = this.players.orderBy(x => this.calculateBy(x))
-
-		this.playerGUI.UpdateSetPosition(position)
-
-		for (let i = orderByPlayers.length - 1; i > -1; i--) {
-			const player = orderByPlayers[i]
+		for (const player of this.players) {
 			if (player.Hero === undefined) {
 				continue
 			}
 			const itemCosts = this.calculateBy(player)
-			// for Team GUI
 			switch (player.Team) {
 				case Team.Dire:
 					dire += itemCosts
@@ -126,22 +133,26 @@ new (class CNetWorth {
 			if (player.IsAbandoned || player.IsDisconnected) {
 				continue
 			}
-			if (this.canDrawPlayerGUI) {
-				this.playerGUI.Draw(
-					player,
-					enabledPlayers,
-					position,
-					this.menu.OnlyItems.value ? itemCosts : undefined
-				)
+			if (this.isHiddenPlayer(player)) {
+				continue
 			}
+			visible.push(player)
+		}
+		visible.sort(this.byNetWorth)
+
+		if (!this.canDrawPlayerGUI) {
+			this.playerGUI.Reset()
+		} else if (visible.length > 0) {
+			this.playerGUI.Draw(visible)
+		} else if (this.menu.IsOpen) {
+			this.playerGUI.DrawPreview()
+		} else {
+			this.playerGUI.Reset()
 		}
 
-		this.playerGUI.CalculateBottomSize(enabledPlayers, position)
-		this.playerGUI.UpdatePositionAfter()
-
-		// Team GUI
 		const isObserver = GameState.LocalTeam === Team.Observer
 		if (this.isShowCase || this.isStrategyTime || isObserver) {
+			this.teamGUI.Hide()
 			return
 		}
 
@@ -157,41 +168,31 @@ new (class CNetWorth {
 		}
 	}
 	public MouseKeyUp(key: VMouseKeys) {
-		if (!this.shouldInput(key)) {
+		if (!this.state) {
 			return true
 		}
-		return this.playerGUI.MouseKeyUp()
+		return this.playerGUI.MouseKeyUp(key)
 	}
 	public MouseKeyDown(key: VMouseKeys) {
-		if (!this.shouldInput(key)) {
+		if (!this.state) {
 			return true
 		}
-		return this.playerGUI.MouseKeyDown()
+		return this.playerGUI.MouseKeyDown(key)
 	}
 	public GameChanged() {
 		this.teamGUI.GameChanged()
 		this.playerGUI.GameChanged()
 	}
-	protected WindowSizeChanged() {
-		this.playerGUI.WindowSizeChanged()
-	}
-	protected MenuConfigChanged(obj: { [key: string]: any }) {
-		this.playerGUI.MenuConfigChanged(obj)
-	}
-	private shouldInput(key: VMouseKeys) {
-		if (!this.state || this.isPostGame || key !== VMouseKeys.MK_LBUTTON) {
-			return false
+	private isHiddenPlayer(player: PlayerCustomData) {
+		const menu = this.menu
+		if (!menu.Local.value && player.IsLocalPlayer) {
+			return true
 		}
-		if (GameState.UIState !== DOTAGameUIState.DOTA_GAME_UI_DOTA_INGAME) {
-			return false
-		}
-		return true
+		return player.IsEnemy() ? !menu.Enemy.value : !menu.Ally.value
 	}
 	private shouldPosition(...positions: Rectangle[]) {
-		return positions.some(position => this.isContainsPanel(position))
-	}
-	private isContainsPanel(position: Rectangle) {
-		return position.Contains(this.playerGUI.TotalPosition.pos1)
+		const position = this.menu.Overlay.Position
+		return positions.some(rect => rect.Contains(position))
 	}
 	private calculateBy(player: PlayerCustomData) {
 		return player.Hero === undefined || !this.menu.OnlyItems.value
