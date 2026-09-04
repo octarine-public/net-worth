@@ -94,7 +94,7 @@ export class TeamGUI {
 			MenuSDK.WriteText(label, this.serializeSum(sum))
 		}
 		this.icon(side.arrow, Math.round(rect.Height / 3), this.arrowPath(team))
-		this.icon(side.gold, Math.round(rect.Height / 2))
+		this.icon(side.gold, Math.round(rect.Height / 2), ImageData.Icons.gold_large)
 		MenuSDK.WriteShown(root, true, "block")
 	}
 
@@ -105,19 +105,13 @@ export class TeamGUI {
 		}
 	}
 
-	private icon(image: Nullable<HTMLElementImage>, size: number, path?: string): void {
+	private icon(image: Nullable<HTMLElementImage>, size: number, path: string): void {
 		if (image === undefined) {
 			return
 		}
 		MenuSDK.WritePx(image, "width", size)
 		MenuSDK.WritePx(image, "height", size)
-		if (path === undefined) {
-			return
-		}
-		const source = MenuSDK.ResolveAsset(path)
-		if (image.src !== source) {
-			image.src = source
-		}
+		MenuSDK.WriteSizedArt(image, MenuSDK.ResolveAsset(path), size, size)
 	}
 
 	private arrowPath(team: Team): string {
@@ -197,7 +191,6 @@ export class TeamGUI {
 				}),
 				React.createElement("img", {
 					ref: side.attachGold,
-					src: MenuSDK.ResolveAsset(ImageData.Icons.gold_large),
 					style: { marginLeft: ICON_GAP }
 				})
 			)
