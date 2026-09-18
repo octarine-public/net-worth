@@ -15,6 +15,9 @@ new (class CNetWorth {
 
 	private readonly byNetWorth = (a: PlayerCustomData, b: PlayerCustomData) =>
 		this.calculateBy(b) - this.calculateBy(a)
+	/** Radiant above Dire, the way the game's stats panel groups its rows, richest first within. */
+	private readonly byTeamNetWorth = (a: PlayerCustomData, b: PlayerCustomData) =>
+		a.Team - b.Team || this.byNetWorth(a, b)
 
 	constructor() {
 		EventsSDK.on("Draw", this.Draw.bind(this))
@@ -138,7 +141,9 @@ new (class CNetWorth {
 			}
 			visible.push(player)
 		}
-		visible.sort(this.byNetWorth)
+		visible.sort(
+			this.menu.SortWithinTeam.value ? this.byTeamNetWorth : this.byNetWorth
+		)
 
 		if (!this.canDrawPlayerGUI) {
 			this.playerGUI.Reset()

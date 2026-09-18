@@ -1,69 +1,271 @@
 import { MenuManager } from "../menu"
 
-const HEADER_H = 30
-const ROW_H = 26
-const FONT = 13
-const NAME_W = 96
-const PORTRAIT_W = 32
-const PORTRAIT_H = 18
-const STRIPE_W = 3
-const STRIPE_GAP = 5
-const TEXT_GAP = 8
-const BOTTOM_PAD = 4
-const VALUE_RESERVE = "000 000"
+/**
+ * The game's own stats panel, as `dota_hud_spectator_game_stats.vcss_c` lays it out. A header of
+ * a 200-wide dropdown plate and 32-tall buttons spaced 4 apart, and 8 under it a row per hero:
+ * a 57×32 portrait with a 3-wide team strip down its left edge, then the rest of the row shared
+ * by a 10-tall bar hung 11 from the top and a bold italic 18 label drawn over it on a dark fade.
+ * The game bleeds every row 20 past the panel's left edge; here a row starts at its portrait.
+ * Panorama units at 1080p, scaled by the screen and the panel's own size slider.
+ */
+const PANEL_W = 328
+const HEADER_H = 32
+const HEADER_GAP = 4
+const DROPDOWN_W = 200
+/** `DropDown { border: 2px solid #5e686966; padding: 4px 8px }`, `Label { margin-left: 6px }`. */
+const DROPDOWN_BORDER = 2
+const DROPDOWN_BORDER_COLOR = "#5e686966"
+const DROPDOWN_LABEL_X = 16
+const DROPDOWN_FONT = 18
+/** The game sets the title in its regular cut; a heavier one reads better over the map. */
+const DROPDOWN_WEIGHT = 700
+/** `.ThinDropDown { background-size: 24px; background-position: right 32px 35% }`. */
+const DROPDOWN_ARROW = 24
+const DROPDOWN_ARROW_RIGHT = 32
+const DROPDOWN_ARROW_TOP = 3
+const SORT_W = 32
+const SORT_ICON = 18
+const BUTTON_W = 40
+/** `.SpectatorMenuIcon { background-size: 62% 56% }` of a 40×32 button. */
+const BUTTON_ICON_W = 25
+const BUTTON_ICON_H = 18
+const BUTTON_RADIUS = 3
+/**
+ * `#252727bb` for a plate and `#576886aa` for a pressed one in the game, which blends its HUD in
+ * linear light; the same alpha blended in sRGB here reads darker and greyer, with less of the
+ * map through it. 0.78 of the game's alpha is what put the team plates on the game's look, and
+ * the header plates take the same share.
+ */
+const PLATE = "#25272792"
+const PLATE_ACTIVE = "#57688685"
+/**
+ * `wash-color: #8199C5` on every icon, the arrow included. The game brightens the icon of a
+ * button whose panel is open; here a pressed button says so with its plate alone, so the icons
+ * keep the one colour the header is read in.
+ */
+const ICON_TINT = "#8199c5"
+const HOTKEY_COLOR = "#535f73cc"
+/** `.Name { color: defaultHUDText }`: #8199C5, which the game's own pixels read as #829AC6. */
+const TITLE_COLOR = "#8199c5"
+
+const ROWS_TOP = 8
+const ROW_H = 32
+const ROW_GAP = 2
+const HERO_W = 57
+const STRIP_W = 3
+const BAR_TOP = 11
+const BAR_H = 10
+const BAR_RIGHT = 8
+const VALUE_FONT = 18
+const VALUE_PAD_TOP = 5
+const VALUE_PAD_RIGHT = 20
+const VALUE_PAD_BOTTOM = 2
+const VALUE_PAD_LEFT = 8
+const VALUE_WEIGHT = 700
+/**
+ * `text-shadow: 1px 1px 8px 2.0 #000000dd` in the game. RmlUi blurs far coarser than Panorama
+ * does, and at this size the smear read as a halo, so the shadow keeps its offset and loses it.
+ */
+const VALUE_SHADOW = "shadow(1px 1px #000000dd)"
+const VALUE_FILL = "linear-gradient(to right, #0b0b0bff 0%, #0b0b0b88 5%, #8aa8a800 100%)"
+
+/** `radiantColorDim` and `direColorDim`: the strip down the portrait's edge. */
+const RADIANT_STRIP = "#118428"
+const DIRE_STRIP = "#a6312e"
+const RADIANT_ROW =
+	"linear-gradient(to right, #252727dd 0%, #12852955 30%, #25272700 100%)"
+const DIRE_ROW = "linear-gradient(to right, #252727dd 0%, #a7322f55 30%, #25272700 100%)"
+const RADIANT_BAR = "linear-gradient(to right, #284b12 0%, #118428cc 85%, #76d13cee 100%)"
+const DIRE_BAR = "linear-gradient(to right, #5e110f 0%, #a6312ecc 85%, #f34741 100%)"
+
+const ARROW_PATH = `${PathData.ImagePath}/control_icons/arrow_dropdown_png.vtex_c`
+const SORT_ALL_PATH = `${PathData.ImagePath}/hud/reborn/sort_all_icon_psd.vtex_c`
+const SORT_TEAM_PATH = `${PathData.ImagePath}/hud/reborn/sort_team_icon_psd.vtex_c`
+const GRAPH_PATH = `${PathData.ImagePath}/hud/reborn/graph_icon_psd.vtex_c`
+const ITEMS_PATH = `${PathData.ImagePath}/hud/reborn/items_icon_psd.vtex_c`
+
+/**
+ * The face the game sets its HUD in, taken from the game's own install rather than shipped
+ * again: the title wants its bold and the values their bold italic.
+ */
+const FONT_FAMILY = "Radiance"
+const FONT_FILES: [path: string, weight: number][] = [
+	["panorama/fonts/radiance-bold.otf", 700],
+	["panorama/fonts/radiance-bolditalic.otf", 700]
+]
+
+/** Rows enough for a match; a custom game with more grows the pool. */
+const PLAYER_ROWS = 10
+const UNBOUND_KEY = "None"
+/** How long the rows take to fold up under the header, or to come back out. */
+const FOLD_MS = MenuSDK.Duration.Reveal
+/** How far the arrow turns while the rows are away: up, to say there is something to unfold. */
+const ARROW_TURN = 180
+
+const enum EHeaderButton {
+	/** The title plate: a click folds the rows away or brings them back. */
+	Collapse,
+	Sort,
+	Graph,
+	Items
+}
 
 interface INetWorthRow {
 	texture: string
-	name: string
 	value: string
-	color: Color
-	isRed: boolean
+	team: Team
+	/** This row's bar as a share of the longest one, 0 to 1. */
+	share: number
 }
 
 const PREVIEW_ROWS = [
 	{
 		texture: ImageData.GetHeroTexture("npc_dota_hero_juggernaut"),
-		value: "12 345",
-		color: Color.PlayerColorRadiant[0],
-		isRed: false
+		value: 12345,
+		team: Team.Radiant
 	},
 	{
 		texture: ImageData.GetHeroTexture("npc_dota_hero_axe"),
-		value: "9 876",
-		color: Color.PlayerColorDire[0],
-		isRed: true
+		value: 9876,
+		team: Team.Dire
 	}
 ] as const
 
+const BASE_STYLE: RmlStyle = {
+	position: "absolute",
+	display: "block",
+	pointerEvents: "none"
+}
+
+class Ref {
+	public element: Nullable<HTMLElement>
+	public readonly attach = (element: Nullable<HTMLElement | null>) => {
+		this.element = element ?? undefined
+	}
+}
+
+class ImageRef {
+	public element: Nullable<HTMLElementImage>
+	public readonly attach = (element: Nullable<HTMLElement | null>) => {
+		this.element = (element ?? undefined) as Nullable<HTMLElementImage>
+	}
+}
+
+/**
+ * One hero's row. The portrait is drawn first and the strip over its left edge, the bar next
+ * and the label over the bar: what the game gets from its layout order, where a later child
+ * covers an earlier one.
+ */
+class RowView {
+	public readonly root = new Ref()
+	public readonly hero = new ImageRef()
+	public readonly strip = new Ref()
+	public readonly bar = new Ref()
+	public readonly value = new Ref()
+	/** The team the row's colours were last written for. */
+	public team: Nullable<Team>
+	public text = ""
+
+	public Render(key: string, family: Nullable<string>): React.ReactElement {
+		return React.createElement(
+			"div",
+			{
+				key,
+				ref: this.root.attach,
+				style: { ...BASE_STYLE, display: "none", overflow: "visible" }
+			},
+			React.createElement("img", { ref: this.hero.attach, style: BASE_STYLE }),
+			React.createElement("div", { ref: this.strip.attach, style: BASE_STYLE }),
+			React.createElement("div", { ref: this.bar.attach, style: BASE_STYLE }),
+			React.createElement("div", {
+				ref: this.value.attach,
+				style: {
+					...BASE_STYLE,
+					whiteSpace: "nowrap",
+					fontFamily: family,
+					fontWeight: VALUE_WEIGHT,
+					fontStyle: "italic",
+					fontEffect: VALUE_SHADOW,
+					decorator: VALUE_FILL
+				}
+			})
+		)
+	}
+}
+
+class ButtonView {
+	public readonly root = new Ref()
+	public readonly icon = new ImageRef()
+	public readonly rect = new Rectangle()
+
+	constructor(
+		public readonly kind: EHeaderButton,
+		public readonly width: number,
+		public readonly iconW: number,
+		public readonly iconH: number
+	) {}
+
+	public Render(key: string): React.ReactElement {
+		return React.createElement(
+			"div",
+			{ key, ref: this.root.attach, style: BASE_STYLE },
+			React.createElement("img", {
+				ref: this.icon.attach,
+				style: { ...BASE_STYLE, imageColor: ICON_TINT }
+			})
+		)
+	}
+}
+
 export class PlayerGUI {
 	private rowCount = 0
+	private drawn = false
+	private pressed: Nullable<EHeaderButton>
+	private hotkeyText = ""
+	private titleText = ""
+	private arrowTurn = -1
+	/** Where the fold was last sent, or nothing before the config has said where it stands. */
+	private foldTarget: Nullable<number>
+	private readonly family: Nullable<string>
 	private readonly rows: INetWorthRow[] = []
+	private readonly views: RowView[] = []
 	private readonly size = new Vector2()
-	private readonly box = new Rectangle()
-	private readonly imagePos = new Vector2()
-	private readonly imageSize = new Vector2()
 	private readonly panel: MenuSDK.OverlayPanel
+	private readonly root = new Ref()
+	private readonly dropdown = new Ref()
+	private readonly dropdownRect = new Rectangle()
+	private readonly label = new Ref()
+	private readonly hotkey = new Ref()
+	private readonly title = new Ref()
+	private readonly arrow = new ImageRef()
+	private readonly buttons = [
+		new ButtonView(EHeaderButton.Sort, SORT_W, SORT_ICON, SORT_ICON),
+		new ButtonView(EHeaderButton.Graph, BUTTON_W, BUTTON_ICON_W, BUTTON_ICON_H),
+		new ButtonView(EHeaderButton.Items, BUTTON_W, BUTTON_ICON_W, BUTTON_ICON_H)
+	]
+	/**
+	 * How far out the rows stand, 1 for all of them and 0 for none: the root is cut to that share
+	 * of its height and the rows fade with it. Read at draw time; the tween only carries it.
+	 */
+	private readonly fold = new MenuSDK.Tween(1, () => {
+		// nothing to apply here: the layout reads the value on its next pass
+	})
 
 	private readonly drawContent = (origin: Vector2) => {
-		const box = this.box
-		box.pos1.CopyFrom(origin)
-		box.pos2.SetVector(origin.x + this.size.x, origin.y + this.size.y)
-		MenuSDK.HudCard.Frame(box)
-		const headerH = MenuSDK.hudH(HEADER_H)
-		const rowH = MenuSDK.hudH(ROW_H)
-		MenuSDK.HudCard.Header(
-			box,
-			headerH,
-			Menu.Localization.Localize("Net worth"),
-			undefined,
-			true
-		)
-		for (let i = 0; i < this.rowCount; i++) {
-			this.row(this.rows[i], box, headerH + rowH * i, rowH)
-		}
+		this.drawn = true
+		this.layout(origin)
 	}
 
 	constructor(private readonly menu: MenuManager) {
+		this.family = loadFonts()
+		for (let i = 0; i < PLAYER_ROWS; i++) {
+			this.views.push(new RowView())
+		}
+		MenuSDK.RegisterPanel(
+			"net-worth-players",
+			() => this.render(),
+			MenuSDK.EPanelLayer.Screen
+		)
 		this.panel = new MenuSDK.OverlayPanel(
 			menu.Overlay,
 			"hud-net-worth",
@@ -73,162 +275,515 @@ export class PlayerGUI {
 
 	public Draw(players: PlayerCustomData[]): void {
 		let count = 0
+		let longest = 0
 		for (const player of players) {
 			const hero = player.Hero
 			if (hero === undefined) {
 				continue
 			}
-			this.setRow(
-				count++,
-				ImageData.GetHeroTexture(hero.Name),
-				player.PlayerName ?? "",
-				this.serializeNetWorth(this.valueOf(player)),
-				player.Color,
-				this.isRed(player)
-			)
+			const value = this.valueOf(player)
+			longest = Math.max(longest, value)
+			this.setRow(count++, ImageData.GetHeroTexture(hero.Name), value, player.Team)
 		}
 		this.rowCount = count
-		this.render()
+		this.shareOut(longest)
+		this.present()
 	}
 
 	public DrawPreview(): void {
+		let longest = 0
 		for (let i = 0; i < PREVIEW_ROWS.length; i++) {
 			const row = PREVIEW_ROWS[i]
-			this.setRow(
-				i,
-				row.texture,
-				Menu.Localization.Localize("Preview"),
-				row.value,
-				row.color,
-				row.isRed
-			)
+			longest = Math.max(longest, row.value)
+			this.setRow(i, row.texture, row.value, row.team)
 		}
 		this.rowCount = PREVIEW_ROWS.length
-		this.render()
+		this.shareOut(longest)
+		this.present()
 	}
 
+	/** A press on the title or a header button is theirs; anything else is the panel's to drag. */
 	public MouseKeyDown(key: VMouseKeys): boolean {
+		if (key === VMouseKeys.MK_LBUTTON && this.panel.HandlesInput()) {
+			const button = this.buttonUnderCursor()
+			if (button !== undefined) {
+				this.pressed = button
+				return false
+			}
+		}
 		return this.panel.MouseKeyDown(key)
 	}
 
 	public MouseKeyUp(key: VMouseKeys): boolean {
-		return key !== VMouseKeys.MK_LBUTTON || this.panel.MouseKeyUp()
+		if (key !== VMouseKeys.MK_LBUTTON) {
+			return true
+		}
+		const pressed = this.pressed
+		if (pressed === undefined) {
+			return this.panel.MouseKeyUp()
+		}
+		this.pressed = undefined
+		if (this.buttonUnderCursor() === pressed) {
+			this.activate(pressed)
+		}
+		return false
 	}
 
 	public GameChanged(): void {
-		this.panel.Reset()
+		this.Reset()
 	}
 
 	public Reset(): void {
+		this.pressed = undefined
 		this.panel.Reset()
+		this.hide()
 	}
 
-	private render(): void {
-		MenuSDK.setHudScale(this.panel.Scale)
-		let valueW = MenuSDK.HudText.Width(VALUE_RESERVE, FONT, MenuSDK.HudBold)
-		for (let i = 0; i < this.rowCount; i++) {
-			valueW = Math.max(
-				valueW,
-				MenuSDK.HudText.Width(this.rows[i].value, FONT, MenuSDK.HudBold)
-			)
-		}
-		const width =
-			MenuSDK.hudW(MenuSDK.HudCard.Pad) * 2 +
-			MenuSDK.hudW(
-				STRIPE_W + STRIPE_GAP + PORTRAIT_W + TEXT_GAP + NAME_W + TEXT_GAP
-			) +
-			valueW
+	/** A Panorama unit on this screen, at the panel's own size. */
+	private get unit(): number {
+		return GUIInfo.ScaleHeight(1) * this.panel.Scale
+	}
+
+	private present(): void {
+		this.grow(this.rowCount)
+		const presence = this.presence()
+		const unit = this.unit
+		const rows = Math.max(this.rowCount, 1)
+		const rowsH = ROWS_TOP + rows * ROW_H + (rows - 1) * ROW_GAP
 		this.size.SetVector(
-			Math.round(width),
-			Math.round(
-				MenuSDK.hudH(HEADER_H) +
-					MenuSDK.hudH(ROW_H) * this.rowCount +
-					MenuSDK.hudH(BOTTOM_PAD)
-			)
+			Math.round(PANEL_W * unit),
+			Math.round((HEADER_H + rowsH * presence) * unit)
 		)
+		this.drawn = false
 		this.panel.Draw(this.size, this.drawContent)
+		if (!this.drawn) {
+			this.hide()
+		}
 	}
 
-	private row(row: INetWorthRow, box: Rectangle, offsetY: number, rowH: number): void {
-		const pad = MenuSDK.hudW(MenuSDK.HudCard.Pad)
-		const stripeW = MenuSDK.hudW(STRIPE_W)
-		const imageW = MenuSDK.hudW(PORTRAIT_W)
-		const imageH = MenuSDK.hudH(PORTRAIT_H)
-		const centerY = box.y + offsetY + rowH / 2
-		const top = Math.round(centerY - imageH / 2)
-		MenuSDK.HudCard.Plate(
-			box.x + pad,
-			top,
-			stripeW,
-			imageH,
-			stripeW / 2,
-			MenuSDK.HudColors.readable(row.color),
-			MenuSDK.hudAlpha()
-		)
-		this.imagePos.SetVector(box.x + pad + stripeW + MenuSDK.hudW(STRIPE_GAP), top)
-		this.imageSize.SetVector(imageW, imageH)
-		MenuSDK.HudCard.Image(
-			row.texture,
-			this.imagePos,
-			this.imageSize,
-			Color.WhiteReadonly,
-			MenuSDK.hudAlpha(),
-			MenuSDK.hudRadius(4)
-		)
-		const textX = this.imagePos.x + imageW + MenuSDK.hudW(TEXT_GAP)
-		MenuSDK.HudText.Left(
-			textX,
-			centerY,
-			MenuSDK.HudText.Clip(row.name, MenuSDK.hudW(NAME_W), FONT),
-			FONT,
-			MenuSDK.HudColors.title
-		)
-		MenuSDK.HudText.Right(
-			box.pos2.x - pad,
-			centerY,
-			row.value,
-			FONT,
-			row.isRed ? MenuSDK.HudColors.kill : MenuSDK.HudColors.ok,
-			MenuSDK.HudBold
-		)
+	/**
+	 * How far out the rows stand this frame. The menu row says where they belong; the first
+	 * reading after a load lands there at once, every later change eases over.
+	 */
+	private presence(): number {
+		const target = this.menu.Collapsed.value ? 0 : 1
+		if (target !== this.foldTarget) {
+			if (this.foldTarget === undefined) {
+				this.fold.Set(target)
+			} else {
+				this.fold.To(target, FOLD_MS, MenuSDK.Ease.Out)
+			}
+			this.foldTarget = target
+		}
+		return this.fold.Value
 	}
 
-	private setRow(
-		index: number,
-		texture: string,
-		name: string,
-		value: string,
-		color: Color,
-		isRed: boolean
-	): void {
-		let row = this.rows[index]
-		if (row === undefined) {
-			row = this.rows[index] = {
-				texture: "",
-				name: "",
-				value: "",
-				color: Color.White,
-				isRed: false
+	private layout(origin: Vector2): void {
+		const root = this.root.element
+		if (root === undefined) {
+			return
+		}
+		const unit = this.unit
+		const presence = this.fold.Value
+		const valueColor = MenuSDK.CssColor(this.menu.ValueColor.SelectedColor)
+		// the root is cut to the size the panel stands at, which is what folds the rows away
+		MenuSDK.WritePx(root, "left", origin.x)
+		MenuSDK.WritePx(root, "top", origin.y)
+		MenuSDK.WritePx(root, "width", this.size.x)
+		MenuSDK.WritePx(root, "height", this.size.y)
+		this.layoutHeader(origin, unit, presence)
+		for (let i = 0; i < this.views.length; i++) {
+			const view = this.views[i]
+			if (i < this.rowCount && presence > 0) {
+				this.layoutRow(view, this.rows[i], i, unit, presence, valueColor)
+			} else {
+				hide(view.root)
 			}
 		}
+		MenuSDK.WriteShown(root, true, "block")
+	}
+
+	private layoutHeader(origin: Vector2, unit: number, presence: number): void {
+		const dropdownW = Math.round(DROPDOWN_W * unit)
+		const headerH = Math.round(HEADER_H * unit)
+		this.dropdownRect.pos1.SetVector(origin.x, origin.y)
+		this.dropdownRect.pos2.SetVector(origin.x + dropdownW, origin.y + headerH)
+		const dropdown = this.dropdown.element
+		if (dropdown !== undefined) {
+			MenuSDK.WritePx(dropdown, "left", 0)
+			MenuSDK.WritePx(dropdown, "top", 0)
+			MenuSDK.WritePx(dropdown, "width", dropdownW)
+			MenuSDK.WritePx(dropdown, "height", headerH)
+			MenuSDK.WritePx(dropdown, "border-width", Math.round(DROPDOWN_BORDER * unit))
+		}
+		// the plate's children stand inside its border, so the inset comes off their offsets
+		const inset = Math.round(DROPDOWN_BORDER * unit)
+		const label = this.label.element
+		if (label !== undefined) {
+			const height = Math.round((HEADER_H - DROPDOWN_BORDER * 2) * unit)
+			MenuSDK.WritePx(label, "left", Math.round(DROPDOWN_LABEL_X * unit) - inset)
+			MenuSDK.WritePx(label, "top", 0)
+			MenuSDK.WritePx(label, "height", height)
+			MenuSDK.WritePx(label, "line-height", height)
+			MenuSDK.WritePx(label, "font-size", Math.round(DROPDOWN_FONT * unit))
+		}
+		this.writeTitle()
+		const arrow = this.arrow.element
+		if (arrow !== undefined) {
+			const size = Math.round(DROPDOWN_ARROW * unit)
+			MenuSDK.WritePx(
+				arrow,
+				"left",
+				Math.round((DROPDOWN_W - DROPDOWN_ARROW_RIGHT) * unit) - inset
+			)
+			MenuSDK.WritePx(arrow, "top", Math.round(DROPDOWN_ARROW_TOP * unit) - inset)
+			MenuSDK.WritePx(arrow, "width", size)
+			MenuSDK.WritePx(arrow, "height", size)
+			MenuSDK.WriteSizedArt(arrow, MenuSDK.ResolveAsset(ARROW_PATH), size, size)
+			const turn = Math.round(ARROW_TURN * (1 - presence))
+			if (turn !== this.arrowTurn) {
+				this.arrowTurn = turn
+				MenuSDK.WriteStyle(arrow, "transform", `rotate(${turn}deg)`)
+			}
+		}
+		// the buttons are the panel's controls, not part of its reading: they stand only while
+		// the panel's own page is open in the menu, and take no click while they are away
+		const showButtons = this.menu.IsOpen
+		let x = DROPDOWN_W + HEADER_GAP
+		for (const button of this.buttons) {
+			if (showButtons) {
+				this.layoutButton(button, origin, x, unit)
+			} else {
+				button.rect.pos1.SetVector(0, 0)
+				button.rect.pos2.SetVector(0, 0)
+				hide(button.root)
+			}
+			x += button.width + HEADER_GAP
+		}
+	}
+
+	private layoutButton(
+		button: ButtonView,
+		origin: Vector2,
+		x: number,
+		unit: number
+	): void {
+		const left = Math.round(x * unit)
+		const width = Math.round((x + button.width) * unit) - left
+		const height = Math.round(HEADER_H * unit)
+		button.rect.pos1.SetVector(origin.x + left, origin.y)
+		button.rect.pos2.SetVector(origin.x + left + width, origin.y + height)
+		const root = button.root.element
+		if (root === undefined) {
+			return
+		}
+		const active = this.isActive(button.kind)
+		MenuSDK.WritePx(root, "left", left)
+		MenuSDK.WritePx(root, "top", 0)
+		MenuSDK.WritePx(root, "width", width)
+		MenuSDK.WritePx(root, "height", height)
+		MenuSDK.WritePx(root, "border-radius", Math.round(BUTTON_RADIUS * unit))
+		MenuSDK.WriteStyle(root, "background-color", active ? PLATE_ACTIVE : PLATE)
+		const icon = button.icon.element
+		if (icon === undefined) {
+			return
+		}
+		const iconW = Math.round(button.iconW * unit)
+		const iconH = Math.round(button.iconH * unit)
+		MenuSDK.WritePx(icon, "left", Math.round((width - iconW) / 2))
+		MenuSDK.WritePx(icon, "top", Math.round((height - iconH) / 2))
+		MenuSDK.WritePx(icon, "width", iconW)
+		MenuSDK.WritePx(icon, "height", iconH)
+		MenuSDK.WriteSizedArt(
+			icon,
+			MenuSDK.ResolveAsset(this.iconPath(button.kind)),
+			iconW,
+			iconH
+		)
+		MenuSDK.WriteShown(root, true, "block")
+	}
+
+	private layoutRow(
+		view: RowView,
+		row: INetWorthRow,
+		index: number,
+		unit: number,
+		presence: number,
+		valueColor: string
+	): void {
+		const root = view.root.element
+		if (root === undefined) {
+			return
+		}
+		const radiant = row.team === Team.Radiant
+		const top = HEADER_H + ROWS_TOP + index * (ROW_H + ROW_GAP)
+		place(root, 0, top, PANEL_W, ROW_H, unit)
+		MenuSDK.WriteFmt(root, "opacity", presence, "")
+		const recolor = view.team !== row.team
+		if (recolor) {
+			view.team = row.team
+			MenuSDK.WriteStyle(root, "decorator", radiant ? RADIANT_ROW : DIRE_ROW)
+		}
+		const hero = view.hero.element
+		if (hero !== undefined) {
+			const width = Math.round(HERO_W * unit)
+			const height = Math.round(ROW_H * unit)
+			place(hero, 0, 0, HERO_W, ROW_H, unit)
+			MenuSDK.WriteSizedArt(hero, MenuSDK.ResolveAsset(row.texture), width, height)
+		}
+		const strip = view.strip.element
+		if (strip !== undefined) {
+			place(strip, 0, 0, STRIP_W, ROW_H, unit)
+			if (recolor) {
+				MenuSDK.WriteStyle(
+					strip,
+					"background-color",
+					radiant ? RADIANT_STRIP : DIRE_STRIP
+				)
+			}
+		}
+		const contentsW = PANEL_W - HERO_W
+		const bar = view.bar.element
+		if (bar !== undefined) {
+			const width = Math.max(row.share * contentsW - BAR_RIGHT, 0)
+			place(bar, HERO_W, BAR_TOP, width, BAR_H, unit)
+			if (recolor) {
+				MenuSDK.WriteStyle(bar, "decorator", radiant ? RADIANT_BAR : DIRE_BAR)
+			}
+		}
+		const value = view.value.element
+		if (value !== undefined) {
+			const lineTop = Math.round(VALUE_PAD_TOP * unit)
+			const lineBottom = Math.round((ROW_H - VALUE_PAD_BOTTOM) * unit)
+			MenuSDK.WritePx(value, "left", Math.round(HERO_W * unit))
+			MenuSDK.WritePx(value, "top", 0)
+			MenuSDK.WritePx(value, "padding-top", lineTop)
+			MenuSDK.WritePx(value, "padding-right", Math.round(VALUE_PAD_RIGHT * unit))
+			MenuSDK.WritePx(
+				value,
+				"padding-bottom",
+				Math.round(ROW_H * unit) - lineBottom
+			)
+			MenuSDK.WritePx(value, "padding-left", Math.round(VALUE_PAD_LEFT * unit))
+			MenuSDK.WritePx(value, "line-height", lineBottom - lineTop)
+			MenuSDK.WritePx(value, "font-size", Math.round(VALUE_FONT * unit))
+			MenuSDK.WriteStyle(value, "color", valueColor)
+			if (view.text !== row.value) {
+				view.text = row.value
+				MenuSDK.WriteText(value, row.value)
+			}
+		}
+		MenuSDK.WriteShown(root, true, "block")
+	}
+
+	/** The hotkey chip and the stat's name, the way the game's dropdown reads them. */
+	private writeTitle(): void {
+		const key = this.menu.ToggleKey.assignedKeyStr
+		const hotkeyText = key === UNBOUND_KEY || key === "" ? "" : `(${key}) `
+		const hotkey = this.hotkey.element
+		if (hotkey !== undefined && hotkeyText !== this.hotkeyText) {
+			this.hotkeyText = hotkeyText
+			MenuSDK.WriteText(hotkey, hotkeyText)
+		}
+		const titleText = Menu.Localization.Localize("Net worth")
+		const title = this.title.element
+		if (title !== undefined && titleText !== this.titleText) {
+			this.titleText = titleText
+			MenuSDK.WriteText(title, titleText)
+		}
+	}
+
+	private hide(): void {
+		hide(this.root)
+	}
+
+	/** Rows enough for `count` heroes; a longer list than the pool asks its layer for a pass. */
+	private grow(count: number): void {
+		if (this.views.length >= count) {
+			return
+		}
+		while (this.views.length < count) {
+			this.views.push(new RowView())
+		}
+		MenuSDK.RefreshPanelLayer(MenuSDK.EPanelLayer.Screen)
+	}
+
+	private buttonUnderCursor(): Nullable<EHeaderButton> {
+		const cursor = InputManager.CursorOnScreen
+		if (this.dropdownRect.Contains(cursor)) {
+			return EHeaderButton.Collapse
+		}
+		return this.buttons.find(button => button.rect.Contains(cursor))?.kind
+	}
+
+	private isActive(button: EHeaderButton): boolean {
+		switch (button) {
+			case EHeaderButton.Graph:
+				return this.menu.Total.State.value
+			case EHeaderButton.Items:
+				return this.menu.OnlyItems.value
+			default:
+				return false
+		}
+	}
+
+	private iconPath(button: EHeaderButton): string {
+		switch (button) {
+			case EHeaderButton.Sort:
+				return this.menu.SortWithinTeam.value ? SORT_TEAM_PATH : SORT_ALL_PATH
+			case EHeaderButton.Graph:
+				return GRAPH_PATH
+			default:
+				return ITEMS_PATH
+		}
+	}
+
+	private activate(button: EHeaderButton): void {
+		const menu = this.menu
+		switch (button) {
+			case EHeaderButton.Collapse:
+				menu.Collapsed.value = !menu.Collapsed.value
+				break
+			case EHeaderButton.Sort:
+				menu.SortWithinTeam.value = !menu.SortWithinTeam.value
+				break
+			case EHeaderButton.Graph:
+				menu.Total.State.value = !menu.Total.State.value
+				break
+			case EHeaderButton.Items:
+				menu.OnlyItems.value = !menu.OnlyItems.value
+				break
+		}
+	}
+
+	private setRow(index: number, texture: string, value: number, team: Team): void {
+		let row = this.rows[index]
+		if (row === undefined) {
+			row = this.rows[index] = { texture: "", value: "", team: Team.None, share: 0 }
+		}
 		row.texture = texture
-		row.name = name
-		row.value = value
-		row.color = color
-		row.isRed = isRed
+		row.value = value.toString()
+		row.team = team
+		row.share = value
+	}
+
+	/** Turns the values kept in `share` into each row's share of the longest bar. */
+	private shareOut(longest: number): void {
+		for (let i = 0; i < this.rowCount; i++) {
+			const row = this.rows[i]
+			row.share = longest > 0 ? row.share / longest : 0
+		}
 	}
 
 	private valueOf(player: PlayerCustomData): number {
 		return this.menu.OnlyItems.value ? player.ItemsGold : player.NetWorth
 	}
 
-	private isRed(player: PlayerCustomData): boolean {
-		return GameState.LocalTeam === Team.Observer
-			? player.Team === Team.Dire
-			: player.IsEnemy()
+	private render(): React.ReactNode {
+		return React.createElement(
+			"div",
+			{
+				style: {
+					position: "absolute",
+					left: 0,
+					top: 0,
+					width: "100%",
+					height: "100%",
+					pointerEvents: "none"
+				}
+			},
+			React.createElement(
+				"div",
+				{
+					ref: this.root.attach,
+					style: { ...BASE_STYLE, display: "none", overflow: "hidden" }
+				},
+				this.renderHeader(),
+				...this.views.map((view, i) => view.Render(`row-${i}`, this.family))
+			)
+		)
 	}
 
-	private serializeNetWorth(netWorth: number): string {
-		return netWorth.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1 ")
+	/**
+	 * The dropdown plate with the hotkey chip, the stat's name and the arrow at its right, and
+	 * the buttons beside it. Only what never moves lives in the tree; every length is written at
+	 * draw time in screen pixels.
+	 */
+	private renderHeader(): React.ReactElement[] {
+		return [
+			React.createElement(
+				"div",
+				{
+					key: "dropdown",
+					ref: this.dropdown.attach,
+					style: {
+						...BASE_STYLE,
+						boxSizing: "border-box",
+						backgroundColor: PLATE,
+						borderColor: DROPDOWN_BORDER_COLOR,
+						overflow: "hidden"
+					}
+				},
+				React.createElement(
+					"div",
+					{
+						ref: this.label.attach,
+						style: {
+							...BASE_STYLE,
+							whiteSpace: "nowrap",
+							fontFamily: this.family,
+							fontWeight: DROPDOWN_WEIGHT,
+							color: TITLE_COLOR
+						}
+					},
+					React.createElement("span", {
+						ref: this.hotkey.attach,
+						style: { color: HOTKEY_COLOR }
+					}),
+					React.createElement("span", { ref: this.title.attach })
+				),
+				React.createElement("img", {
+					ref: this.arrow.attach,
+					style: { ...BASE_STYLE, imageColor: ICON_TINT }
+				})
+			),
+			...this.buttons.map(button => button.Render(`button-${button.kind}`))
+		]
 	}
+}
+
+/** Rounds each edge on its own, so two boxes sharing an edge land on the same screen pixel. */
+function place(
+	element: HTMLElement,
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+	unit: number
+): void {
+	const left = Math.round(x * unit)
+	const top = Math.round(y * unit)
+	MenuSDK.WritePx(element, "left", left)
+	MenuSDK.WritePx(element, "top", top)
+	MenuSDK.WritePx(element, "width", Math.round((x + width) * unit) - left)
+	MenuSDK.WritePx(element, "height", Math.round((y + height) * unit) - top)
+}
+
+function hide(ref: Ref): void {
+	const element = ref.element
+	if (element !== undefined) {
+		MenuSDK.WriteShown(element, false)
+	}
+}
+
+/** The game's faces, or nothing where the host cannot load them and the theme's face serves. */
+function loadFonts(): Nullable<string> {
+	if (typeof LoadFont !== "function") {
+		return undefined
+	}
+	let loaded = true
+	for (const [path, weight] of FONT_FILES) {
+		loaded = LoadFont(path, false, weight) && loaded
+	}
+	return loaded ? FONT_FAMILY : undefined
 }
