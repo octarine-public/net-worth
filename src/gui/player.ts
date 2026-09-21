@@ -302,7 +302,7 @@ export class PlayerGUI {
 		this.present()
 	}
 
-	/** A press on the title or a header button is theirs; anything else is the panel's to drag. */
+	/** Header controls take their own clicks; dragging requires the main menu to be open. */
 	public MouseKeyDown(key: VMouseKeys): boolean {
 		if (key === VMouseKeys.MK_LBUTTON && this.panel.HandlesInput()) {
 			const button = this.buttonUnderCursor()
@@ -311,7 +311,7 @@ export class PlayerGUI {
 				return false
 			}
 		}
-		return this.panel.MouseKeyDown(key)
+		return MenuSDK.MenuManager.IsOpen ? this.panel.MouseKeyDown(key) : true
 	}
 
 	public MouseKeyUp(key: VMouseKeys): boolean {
@@ -345,6 +345,9 @@ export class PlayerGUI {
 	}
 
 	private present(): void {
+		if (!MenuSDK.MenuManager.IsOpen && this.panel.Dragging) {
+			this.panel.MouseKeyUp()
+		}
 		this.grow(this.rowCount)
 		const presence = this.presence()
 		const unit = this.unit
