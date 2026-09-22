@@ -84,6 +84,30 @@ const DIRE_ROW = "linear-gradient(to right, #252727dd 0%, #a7322f55 30%, #252727
 const RADIANT_BAR = "linear-gradient(to right, #284b12 0%, #118428cc 85%, #76d13cee 100%)"
 const DIRE_BAR = "linear-gradient(to right, #5e110f 0%, #a6312ecc 85%, #f34741 100%)"
 
+/** The strip, the row's fade and its bar: what a row is coloured with. */
+interface IRowPalette {
+	readonly strip: string
+	readonly row: string
+	readonly bar: string
+}
+
+const RADIANT_PALETTE: IRowPalette = {
+	strip: RADIANT_STRIP,
+	row: RADIANT_ROW,
+	bar: RADIANT_BAR
+}
+const DIRE_PALETTE: IRowPalette = { strip: DIRE_STRIP, row: DIRE_ROW, bar: DIRE_BAR }
+/**
+ * A player's colour laid on the team's shapes: the row fades through it at the team's alpha,
+ * and the bar runs from it 55% of the way to black, through it at `cc`, to it 30% of the way
+ * to white.
+ */
+const PLAYER_BAR_SHADE = 0.55
+const PLAYER_BAR_TINT = 0.3
+const PLAYER_BAR_ALPHA = 0xcc / 0xff
+const PLAYER_BAR_END_ALPHA = 0xee / 0xff
+const PLAYER_ROW_ALPHA = 0x55 / 0xff
+
 const ARROW_PATH = `${PathData.ImagePath}/hud/reborn/arrow_dropdown_psd.vtex_c`
 const SORT_ALL_PATH = `${PathData.ImagePath}/hud/reborn/sort_all_icon_psd.vtex_c`
 const SORT_TEAM_PATH = `${PathData.ImagePath}/hud/reborn/sort_team_icon_psd.vtex_c`
@@ -117,7 +141,7 @@ const enum EHeaderButton {
 interface INetWorthRow {
 	texture: string
 	value: string
-	team: Team
+	palette: IRowPalette
 	/** This row's bar as a share of the longest one, 0 to 1. */
 	share: number
 }
@@ -126,12 +150,14 @@ const PREVIEW_ROWS = [
 	{
 		texture: ImageData.GetHeroTexture("npc_dota_hero_juggernaut"),
 		value: 12345,
-		team: Team.Radiant
+		team: Team.Radiant,
+		color: Color.PlayerColorRadiant[0]
 	},
 	{
 		texture: ImageData.GetHeroTexture("npc_dota_hero_axe"),
 		value: 9876,
-		team: Team.Dire
+		team: Team.Dire,
+		color: Color.PlayerColorDire[0]
 	}
 ] as const
 
@@ -229,6 +255,8 @@ export class PlayerGUI {
 	private readonly family: Nullable<string>
 	private readonly rows: INetWorthRow[] = []
 	private readonly views: RowView[] = []
+	/** Each player colour's palette, built the first time a row is drawn in it. */
+	private readonly playerPalettes = new Map<number, IRowPalette>()
 	private readonly size = new Vector2()
 	private readonly panel: MenuSDK.OverlayPanel
 	private readonly root = new Ref()
@@ -274,6 +302,7 @@ export class PlayerGUI {
 	}
 
 	public Draw(players: PlayerCustomData[]): void {
+		const byPlayer = this.menu.PlayerColors.value
 		let count = 0
 		let longest = 0
 		for (const player of players) {
@@ -283,7 +312,12 @@ export class PlayerGUI {
 			}
 			const value = this.valueOf(player)
 			longest = Math.max(longest, value)
-			this.setRow(count++, ImageData.GetHeroTexture(hero.Name), value, player.Team)
+			this.setRow(
+				count++,
+				ImageData.GetHeroTexture(hero.Name),
+				value,
+				byPlayer ? this.playerPalette(player.Color) : teamPalette(player.Team)
+			)
 		}
 		this.rowCount = count
 		this.shareOut(longest)
@@ -291,11 +325,17 @@ export class PlayerGUI {
 	}
 
 	public DrawPreview(): void {
+		const byPlayer = this.menu.PlayerColors.value
 		let longest = 0
 		for (let i = 0; i < PREVIEW_ROWS.length; i++) {
 			const row = PREVIEW_ROWS[i]
 			longest = Math.max(longest, row.value)
-			this.setRow(i, row.texture, row.value, row.team)
+			this.setRow(
+				i,
+				row.texture,
+				row.value,
+				byPlayer ? this.playerPalette(row.color) : teamPalette(row.team)
+			)
 		}
 		this.rowCount = PREVIEW_ROWS.length
 		this.shareOut(longest)
@@ -535,11 +575,11 @@ export class PlayerGUI {
 		if (root === undefined) {
 			return
 		}
-		const radiant = row.team === Team.Radiant
+		const palette = row.palette
 		const top = HEADER_H + ROWS_TOP + index * (ROW_H + ROW_GAP)
 		place(root, 0, top, PANEL_W, ROW_H, unit)
 		MenuSDK.WriteFmt(root, "opacity", presence, "")
-		MenuSDK.WriteStyle(root, "decorator", radiant ? RADIANT_ROW : DIRE_ROW)
+		MenuSDK.WriteStyle(root, "decorator", palette.row)
 		const hero = view.hero.element
 		if (hero !== undefined) {
 			const width = Math.round(HERO_W * unit)
@@ -550,18 +590,18 @@ export class PlayerGUI {
 		const strip = view.strip.element
 		if (strip !== undefined) {
 			place(strip, 0, 0, STRIP_W, ROW_H, unit)
-			MenuSDK.WriteStyle(
-				strip,
-				"background-color",
-				radiant ? RADIANT_STRIP : DIRE_STRIP
-			)
+			MenuSDK.WriteStyle(strip, "background-color", palette.strip)
 		}
-		const contentsW = PANEL_W - HERO_W
 		const bar = view.bar.element
 		if (bar !== undefined) {
-			const width = Math.max(row.share * contentsW - BAR_RIGHT, 0)
-			place(bar, HERO_W, BAR_TOP, width, BAR_H, unit)
-			MenuSDK.WriteStyle(bar, "decorator", radiant ? RADIANT_BAR : DIRE_BAR)
+			if (this.menu.Bar.value) {
+				const width = Math.max(row.share * (PANEL_W - HERO_W) - BAR_RIGHT, 0)
+				place(bar, HERO_W, BAR_TOP, width, BAR_H, unit)
+				MenuSDK.WriteStyle(bar, "decorator", palette.bar)
+				MenuSDK.WriteShown(bar, true, "block")
+			} else {
+				MenuSDK.WriteShown(bar, false)
+			}
 		}
 		const value = view.value.element
 		if (value !== undefined) {
@@ -673,15 +713,29 @@ export class PlayerGUI {
 		}
 	}
 
-	private setRow(index: number, texture: string, value: number, team: Team): void {
+	private setRow(
+		index: number,
+		texture: string,
+		value: number,
+		palette: IRowPalette
+	): void {
 		let row = this.rows[index]
 		if (row === undefined) {
-			row = this.rows[index] = { texture: "", value: "", team: Team.None, share: 0 }
+			row = this.rows[index] = { texture: "", value: "", palette, share: 0 }
 		}
 		row.texture = texture
 		row.value = value.toString()
-		row.team = team
+		row.palette = palette
 		row.share = value
+	}
+
+	private playerPalette(color: Color): IRowPalette {
+		let palette = this.playerPalettes.get(color.data32)
+		if (palette === undefined) {
+			palette = paletteOf(color)
+			this.playerPalettes.set(color.data32, palette)
+		}
+		return palette
 	}
 
 	/** Turns the values kept in `share` into each row's share of the longest bar. */
@@ -777,6 +831,27 @@ function place(
 	MenuSDK.WritePx(element, "top", top)
 	MenuSDK.WritePx(element, "width", Math.round((x + width) * unit) - left)
 	MenuSDK.WritePx(element, "height", Math.round((y + height) * unit) - top)
+}
+
+function teamPalette(team: Team): IRowPalette {
+	return team === Team.Radiant ? RADIANT_PALETTE : DIRE_PALETTE
+}
+
+/** The team's strip, fade and bar, drawn in a player's colour instead. */
+function paletteOf(color: Color): IRowPalette {
+	const base = MenuSDK.cssColor(color)
+	const shade = MenuSDK.mixHex(base, "#000000", PLAYER_BAR_SHADE)
+	const middle = MenuSDK.fadeHex(base, PLAYER_BAR_ALPHA)
+	const end = MenuSDK.fadeHex(
+		MenuSDK.mixHex(base, "#ffffff", PLAYER_BAR_TINT),
+		PLAYER_BAR_END_ALPHA
+	)
+	const fade = MenuSDK.fadeHex(base, PLAYER_ROW_ALPHA)
+	return {
+		strip: base,
+		row: `linear-gradient(to right, #252727dd 0%, ${fade} 30%, #25272700 100%)`,
+		bar: `linear-gradient(to right, ${shade} 0%, ${middle} 85%, ${end} 100%)`
+	}
 }
 
 function hide(ref: Ref): void {

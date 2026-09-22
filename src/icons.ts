@@ -14,6 +14,8 @@ export const NetWorthIcons = {
 	Self: `${iconsPath}/self.svg`,
 	OnlyItems: Menu.Icons.ItemList,
 	SortWithinTeam: Menu.Icons.ListSplit,
+	Bar: Menu.Icons.RowFill,
+	PlayerColors: Menu.Icons.PaintRoller,
 	ValueColor: Menu.Icons.Palette,
 	Key: Menu.Icons.Keyboard,
 	KeyMode: Menu.Icons.ToggleLeft,

@@ -59,6 +59,8 @@ export class MenuManager {
 	public readonly Local: Menu.Toggle
 	public readonly OnlyItems: Menu.Toggle
 	public readonly SortWithinTeam: Menu.Toggle
+	public readonly Bar: Menu.Toggle
+	public readonly PlayerColors: Menu.Toggle
 	public readonly ValueColor: Menu.ColorPicker
 	/** Whether the rows are folded up under the header; a click on the title flips it. */
 	public readonly Collapsed: Menu.Toggle
@@ -131,6 +133,20 @@ export class MenuManager {
 			"Radiant above Dire, each team\nfrom the richest hero down",
 			-1,
 			NetWorthIcons.SortWithinTeam
+		)
+		this.Bar = this.Tree.AddToggle(
+			"Bar",
+			true,
+			"A bar behind each value,\nas long as its share of the richest hero's",
+			-1,
+			NetWorthIcons.Bar
+		)
+		this.PlayerColors = this.Tree.AddToggle(
+			"Player colors",
+			false,
+			"Color each row in its player's color\ninstead of the team's",
+			-1,
+			NetWorthIcons.PlayerColors
 		)
 		// the gold the game's stats panel writes its net worth in
 		this.ValueColor = this.Tree.AddColorPicker("Value color", new Color(242, 195, 30))
