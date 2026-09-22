@@ -12,38 +12,45 @@ const PANEL_W = 328
 const HEADER_H = 32
 const HEADER_GAP = 4
 const DROPDOWN_W = 200
-/** `DropDown { border: 2px solid #5e686966; padding: 4px 8px }`, `Label { margin-left: 6px }`. */
-const DROPDOWN_BORDER = 2
-const DROPDOWN_BORDER_COLOR = "#5e686966"
-const DROPDOWN_LABEL_X = 16
-const DROPDOWN_FONT = 18
-/** The game sets the title in its regular cut; a heavier one reads better over the map. */
-const DROPDOWN_WEIGHT = 700
-/** `.ThinDropDown { background-size: 24px; background-position: right 32px 35% }`. */
-const DROPDOWN_ARROW = 24
-const DROPDOWN_ARROW_RIGHT = 32
-const DROPDOWN_ARROW_TOP = 3
+/**
+ * The HUD's own dropdown, which `hudstyles.vcss_c` restyles over the client's: no border,
+ * `padding: 4px 8px`, and a label 2 in from the padding in the plate's bold italic, at 16 and
+ * centred on its height.
+ */
+const DROPDOWN_LABEL_X = 10
+const DROPDOWN_FONT = 16
+/**
+ * `background-size: 14px; background-position: right 24px 50%`. Panorama stands the image's
+ * left edge that far in from the right, which the game's own pixels put 176 in on its 200-wide
+ * plate. The label stops short of it, the way its `margin-right: 24px` keeps it off the arrow.
+ */
+const DROPDOWN_ARROW = 14
+const DROPDOWN_ARROW_RIGHT = 24
 const SORT_W = 32
 const SORT_ICON = 18
 const BUTTON_W = 40
 /** `.SpectatorMenuIcon { background-size: 62% 56% }` of a 40×32 button. */
 const BUTTON_ICON_W = 25
 const BUTTON_ICON_H = 18
-const BUTTON_RADIUS = 3
+const PLATE_RADIUS = 3
 /**
- * `#252727bb` for a plate and `#576886aa` for a pressed one in the game, which blends its HUD in
- * linear light; the same alpha blended in sRGB here reads darker and greyer, with less of the
- * map through it. 0.78 of the game's alpha is what put the team plates on the game's look, and
- * the header plates take the same share.
+ * `#StatsDropDown` and the buttons beside it: `#252727bb`, `#313a4bcc` under the cursor and
+ * `#576886aa` for the button whose panel is open. Over the dark map the game's plate reads as
+ * that alpha blended plainly, the way the panel blends its own, so the values carry over as
+ * they are.
  */
-const PLATE = "#25272792"
-const PLATE_ACTIVE = "#57688685"
+const PLATE = "#252727bb"
+const PLATE_HOVER = "#313a4bcc"
+const PLATE_ACTIVE = "#576886aa"
 /**
- * `wash-color: #8199C5` on every icon, the arrow included. The game brightens the icon of a
- * button whose panel is open; here a pressed button says so with its plate alone, so the icons
- * keep the one colour the header is read in.
+ * `wash-color` over the icons' white art: `#8199C5`, `bluegreyTextBright` on the button whose
+ * panel is open and `#e9eaec` on the sort icon under the cursor. The arrow's art is drawn in
+ * `#8199C5` already and takes no wash.
  */
 const ICON_TINT = "#8199c5"
+const ICON_ACTIVE = "#e3eafa"
+const ICON_HOVER = "#e9eaec"
+/** `.HotKey { color: defaultHUDTextDim&cc }`. */
 const HOTKEY_COLOR = "#535f73cc"
 /** `.Name { color: defaultHUDText }`: #8199C5, which the game's own pixels read as #829AC6. */
 const TITLE_COLOR = "#8199c5"
@@ -61,7 +68,6 @@ const VALUE_PAD_TOP = 5
 const VALUE_PAD_RIGHT = 20
 const VALUE_PAD_BOTTOM = 2
 const VALUE_PAD_LEFT = 8
-const VALUE_WEIGHT = 700
 /**
  * `text-shadow: 1px 1px 8px 2.0 #000000dd` in the game. RmlUi blurs far coarser than Panorama
  * does, and at this size the smear read as a halo, so the shadow keeps its offset and loses it.
@@ -78,7 +84,7 @@ const DIRE_ROW = "linear-gradient(to right, #252727dd 0%, #a7322f55 30%, #252727
 const RADIANT_BAR = "linear-gradient(to right, #284b12 0%, #118428cc 85%, #76d13cee 100%)"
 const DIRE_BAR = "linear-gradient(to right, #5e110f 0%, #a6312ecc 85%, #f34741 100%)"
 
-const ARROW_PATH = `${PathData.ImagePath}/control_icons/arrow_dropdown_png.vtex_c`
+const ARROW_PATH = `${PathData.ImagePath}/hud/reborn/arrow_dropdown_psd.vtex_c`
 const SORT_ALL_PATH = `${PathData.ImagePath}/hud/reborn/sort_all_icon_psd.vtex_c`
 const SORT_TEAM_PATH = `${PathData.ImagePath}/hud/reborn/sort_team_icon_psd.vtex_c`
 const GRAPH_PATH = `${PathData.ImagePath}/hud/reborn/graph_icon_psd.vtex_c`
@@ -86,13 +92,11 @@ const ITEMS_PATH = `${PathData.ImagePath}/hud/reborn/items_icon_psd.vtex_c`
 
 /**
  * The face the game sets its HUD in, taken from the game's own install rather than shipped
- * again: the title wants its bold and the values their bold italic.
+ * again: the title and the values alike want its bold italic.
  */
 const FONT_FAMILY = "Radiance"
-const FONT_FILES: [path: string, weight: number][] = [
-	["panorama/fonts/radiance-bold.otf", 700],
-	["panorama/fonts/radiance-bolditalic.otf", 700]
-]
+const FONT_WEIGHT = 700
+const FONT_FILE = "panorama/fonts/radiance-bolditalic.otf"
 
 /** Rows enough for a match; a custom game with more grows the pool. */
 const PLAYER_ROWS = 10
@@ -162,9 +166,6 @@ class RowView {
 	public readonly strip = new Ref()
 	public readonly bar = new Ref()
 	public readonly value = new Ref()
-	/** The team the row's colours were last written for. */
-	public team: Nullable<Team>
-	public text = ""
 
 	public Render(key: string, family: Nullable<string>): React.ReactElement {
 		return React.createElement(
@@ -183,7 +184,7 @@ class RowView {
 					...BASE_STYLE,
 					whiteSpace: "nowrap",
 					fontFamily: family,
-					fontWeight: VALUE_WEIGHT,
+					fontWeight: FONT_WEIGHT,
 					fontStyle: "italic",
 					fontEffect: VALUE_SHADOW,
 					decorator: VALUE_FILL
@@ -209,10 +210,7 @@ class ButtonView {
 		return React.createElement(
 			"div",
 			{ key, ref: this.root.attach, style: BASE_STYLE },
-			React.createElement("img", {
-				ref: this.icon.attach,
-				style: { ...BASE_STYLE, imageColor: ICON_TINT }
-			})
+			React.createElement("img", { ref: this.icon.attach, style: BASE_STYLE })
 		)
 	}
 }
@@ -221,9 +219,11 @@ export class PlayerGUI {
 	private rowCount = 0
 	private drawn = false
 	private pressed: Nullable<EHeaderButton>
+	/** The key the hotkey chip was last worded for, and the chip's text for it. */
+	private hotkeyKey = ""
 	private hotkeyText = ""
-	private titleText = ""
-	private arrowTurn = -1
+	/** Where the cursor stands this frame, or nothing while the panel does not own it. */
+	private pointer: Nullable<Vector2>
 	/** Where the fold was last sent, or nothing before the config has said where it stands. */
 	private foldTarget: Nullable<number>
 	private readonly family: Nullable<string>
@@ -257,7 +257,7 @@ export class PlayerGUI {
 	}
 
 	constructor(private readonly menu: MenuManager) {
-		this.family = loadFonts()
+		this.family = loadFont()
 		for (let i = 0; i < PLAYER_ROWS; i++) {
 			this.views.push(new RowView())
 		}
@@ -407,6 +407,7 @@ export class PlayerGUI {
 	}
 
 	private layoutHeader(origin: Vector2, unit: number, presence: number): void {
+		this.pointer = this.panel.HandlesInput() ? InputManager.CursorOnScreen : undefined
 		const dropdownW = Math.round(DROPDOWN_W * unit)
 		const headerH = Math.round(HEADER_H * unit)
 		this.dropdownRect.pos1.SetVector(origin.x, origin.y)
@@ -417,35 +418,35 @@ export class PlayerGUI {
 			MenuSDK.WritePx(dropdown, "top", 0)
 			MenuSDK.WritePx(dropdown, "width", dropdownW)
 			MenuSDK.WritePx(dropdown, "height", headerH)
-			MenuSDK.WritePx(dropdown, "border-width", Math.round(DROPDOWN_BORDER * unit))
+			MenuSDK.WritePx(dropdown, "border-radius", Math.round(PLATE_RADIUS * unit))
+			MenuSDK.WriteStyle(
+				dropdown,
+				"background-color",
+				this.isHovered(this.dropdownRect) ? PLATE_HOVER : PLATE
+			)
 		}
-		// the plate's children stand inside its border, so the inset comes off their offsets
-		const inset = Math.round(DROPDOWN_BORDER * unit)
+		const labelX = Math.round(DROPDOWN_LABEL_X * unit)
+		const arrowX = Math.round((DROPDOWN_W - DROPDOWN_ARROW_RIGHT) * unit)
 		const label = this.label.element
 		if (label !== undefined) {
-			const height = Math.round((HEADER_H - DROPDOWN_BORDER * 2) * unit)
-			MenuSDK.WritePx(label, "left", Math.round(DROPDOWN_LABEL_X * unit) - inset)
+			MenuSDK.WritePx(label, "left", labelX)
 			MenuSDK.WritePx(label, "top", 0)
-			MenuSDK.WritePx(label, "height", height)
-			MenuSDK.WritePx(label, "line-height", height)
+			MenuSDK.WritePx(label, "width", arrowX - labelX)
+			MenuSDK.WritePx(label, "height", headerH)
+			MenuSDK.WritePx(label, "line-height", headerH)
 			MenuSDK.WritePx(label, "font-size", Math.round(DROPDOWN_FONT * unit))
 		}
 		this.writeTitle()
 		const arrow = this.arrow.element
 		if (arrow !== undefined) {
 			const size = Math.round(DROPDOWN_ARROW * unit)
-			MenuSDK.WritePx(
-				arrow,
-				"left",
-				Math.round((DROPDOWN_W - DROPDOWN_ARROW_RIGHT) * unit) - inset
-			)
-			MenuSDK.WritePx(arrow, "top", Math.round(DROPDOWN_ARROW_TOP * unit) - inset)
+			MenuSDK.WritePx(arrow, "left", arrowX)
+			MenuSDK.WritePx(arrow, "top", Math.round((headerH - size) / 2))
 			MenuSDK.WritePx(arrow, "width", size)
 			MenuSDK.WritePx(arrow, "height", size)
 			MenuSDK.WriteSizedArt(arrow, MenuSDK.ResolveAsset(ARROW_PATH), size, size)
 			const turn = Math.round(ARROW_TURN * (1 - presence))
-			if (turn !== this.arrowTurn) {
-				this.arrowTurn = turn
+			if (MenuSDK.MarkValue(arrow, "m:turn", turn)) {
 				MenuSDK.WriteStyle(arrow, "transform", `rotate(${turn}deg)`)
 			}
 		}
@@ -480,13 +481,20 @@ export class PlayerGUI {
 		if (root === undefined) {
 			return
 		}
+		// an open panel's button keeps its plate under the cursor, as the game's selector outranks
+		// its `:hover` rule
 		const active = this.isActive(button.kind)
+		const hovered = this.isHovered(button.rect)
 		MenuSDK.WritePx(root, "left", left)
 		MenuSDK.WritePx(root, "top", 0)
 		MenuSDK.WritePx(root, "width", width)
 		MenuSDK.WritePx(root, "height", height)
-		MenuSDK.WritePx(root, "border-radius", Math.round(BUTTON_RADIUS * unit))
-		MenuSDK.WriteStyle(root, "background-color", active ? PLATE_ACTIVE : PLATE)
+		MenuSDK.WritePx(root, "border-radius", Math.round(PLATE_RADIUS * unit))
+		MenuSDK.WriteStyle(
+			root,
+			"background-color",
+			active ? PLATE_ACTIVE : hovered ? PLATE_HOVER : PLATE
+		)
 		const icon = button.icon.element
 		if (icon === undefined) {
 			return
@@ -497,6 +505,15 @@ export class PlayerGUI {
 		MenuSDK.WritePx(icon, "top", Math.round((height - iconH) / 2))
 		MenuSDK.WritePx(icon, "width", iconW)
 		MenuSDK.WritePx(icon, "height", iconH)
+		MenuSDK.WriteStyle(
+			icon,
+			"image-color",
+			active
+				? ICON_ACTIVE
+				: hovered && button.kind === EHeaderButton.Sort
+					? ICON_HOVER
+					: ICON_TINT
+		)
 		MenuSDK.WriteSizedArt(
 			icon,
 			MenuSDK.ResolveAsset(this.iconPath(button.kind)),
@@ -522,11 +539,7 @@ export class PlayerGUI {
 		const top = HEADER_H + ROWS_TOP + index * (ROW_H + ROW_GAP)
 		place(root, 0, top, PANEL_W, ROW_H, unit)
 		MenuSDK.WriteFmt(root, "opacity", presence, "")
-		const recolor = view.team !== row.team
-		if (recolor) {
-			view.team = row.team
-			MenuSDK.WriteStyle(root, "decorator", radiant ? RADIANT_ROW : DIRE_ROW)
-		}
+		MenuSDK.WriteStyle(root, "decorator", radiant ? RADIANT_ROW : DIRE_ROW)
 		const hero = view.hero.element
 		if (hero !== undefined) {
 			const width = Math.round(HERO_W * unit)
@@ -537,22 +550,18 @@ export class PlayerGUI {
 		const strip = view.strip.element
 		if (strip !== undefined) {
 			place(strip, 0, 0, STRIP_W, ROW_H, unit)
-			if (recolor) {
-				MenuSDK.WriteStyle(
-					strip,
-					"background-color",
-					radiant ? RADIANT_STRIP : DIRE_STRIP
-				)
-			}
+			MenuSDK.WriteStyle(
+				strip,
+				"background-color",
+				radiant ? RADIANT_STRIP : DIRE_STRIP
+			)
 		}
 		const contentsW = PANEL_W - HERO_W
 		const bar = view.bar.element
 		if (bar !== undefined) {
 			const width = Math.max(row.share * contentsW - BAR_RIGHT, 0)
 			place(bar, HERO_W, BAR_TOP, width, BAR_H, unit)
-			if (recolor) {
-				MenuSDK.WriteStyle(bar, "decorator", radiant ? RADIANT_BAR : DIRE_BAR)
-			}
+			MenuSDK.WriteStyle(bar, "decorator", radiant ? RADIANT_BAR : DIRE_BAR)
 		}
 		const value = view.value.element
 		if (value !== undefined) {
@@ -571,28 +580,29 @@ export class PlayerGUI {
 			MenuSDK.WritePx(value, "line-height", lineBottom - lineTop)
 			MenuSDK.WritePx(value, "font-size", Math.round(VALUE_FONT * unit))
 			MenuSDK.WriteStyle(value, "color", valueColor)
-			if (view.text !== row.value) {
-				view.text = row.value
-				MenuSDK.WriteText(value, row.value)
-			}
+			MenuSDK.WriteText(value, row.value)
 		}
 		MenuSDK.WriteShown(root, true, "block")
 	}
 
-	/** The hotkey chip and the stat's name, the way the game's dropdown reads them. */
+	/**
+	 * The hotkey chip and the stat's name, the way the game's dropdown reads them. The writers
+	 * gate on what the element itself last showed, so an element the document built afresh is
+	 * written again rather than left blank.
+	 */
 	private writeTitle(): void {
-		const key = this.menu.ToggleKey.assignedKeyStr
-		const hotkeyText = key === UNBOUND_KEY || key === "" ? "" : `(${key}) `
 		const hotkey = this.hotkey.element
-		if (hotkey !== undefined && hotkeyText !== this.hotkeyText) {
-			this.hotkeyText = hotkeyText
-			MenuSDK.WriteText(hotkey, hotkeyText)
+		if (hotkey !== undefined) {
+			const key = this.menu.ToggleKey.assignedKeyStr
+			if (key !== this.hotkeyKey) {
+				this.hotkeyKey = key
+				this.hotkeyText = key === UNBOUND_KEY || key === "" ? "" : `(${key}) `
+			}
+			MenuSDK.WriteText(hotkey, this.hotkeyText)
 		}
-		const titleText = Menu.Localization.Localize("Net worth")
 		const title = this.title.element
-		if (title !== undefined && titleText !== this.titleText) {
-			this.titleText = titleText
-			MenuSDK.WriteText(title, titleText)
+		if (title !== undefined) {
+			MenuSDK.WriteText(title, Menu.Localization.Localize("Net worth"))
 		}
 	}
 
@@ -617,6 +627,10 @@ export class PlayerGUI {
 			return EHeaderButton.Collapse
 		}
 		return this.buttons.find(button => button.rect.Contains(cursor))?.kind
+	}
+
+	private isHovered(rect: Rectangle): boolean {
+		return this.pointer !== undefined && rect.Contains(this.pointer)
 	}
 
 	private isActive(button: EHeaderButton): boolean {
@@ -709,8 +723,8 @@ export class PlayerGUI {
 
 	/**
 	 * The dropdown plate with the hotkey chip, the stat's name and the arrow at its right, and
-	 * the buttons beside it. Only what never moves lives in the tree; every length is written at
-	 * draw time in screen pixels.
+	 * the buttons beside it. Only what never moves lives in the tree; every length, and every
+	 * colour the cursor changes, is written at draw time.
 	 */
 	private renderHeader(): React.ReactElement[] {
 		return [
@@ -719,13 +733,7 @@ export class PlayerGUI {
 				{
 					key: "dropdown",
 					ref: this.dropdown.attach,
-					style: {
-						...BASE_STYLE,
-						boxSizing: "border-box",
-						backgroundColor: PLATE,
-						borderColor: DROPDOWN_BORDER_COLOR,
-						overflow: "hidden"
-					}
+					style: { ...BASE_STYLE, overflow: "hidden" }
 				},
 				React.createElement(
 					"div",
@@ -733,9 +741,11 @@ export class PlayerGUI {
 						ref: this.label.attach,
 						style: {
 							...BASE_STYLE,
+							overflow: "hidden",
 							whiteSpace: "nowrap",
 							fontFamily: this.family,
-							fontWeight: DROPDOWN_WEIGHT,
+							fontWeight: FONT_WEIGHT,
+							fontStyle: "italic",
 							color: TITLE_COLOR
 						}
 					},
@@ -745,10 +755,7 @@ export class PlayerGUI {
 					}),
 					React.createElement("span", { ref: this.title.attach })
 				),
-				React.createElement("img", {
-					ref: this.arrow.attach,
-					style: { ...BASE_STYLE, imageColor: ICON_TINT }
-				})
+				React.createElement("img", { ref: this.arrow.attach, style: BASE_STYLE })
 			),
 			...this.buttons.map(button => button.Render(`button-${button.kind}`))
 		]
@@ -779,14 +786,9 @@ function hide(ref: Ref): void {
 	}
 }
 
-/** The game's faces, or nothing where the host cannot load them and the theme's face serves. */
-function loadFonts(): Nullable<string> {
-	if (typeof LoadFont !== "function") {
-		return undefined
-	}
-	let loaded = true
-	for (const [path, weight] of FONT_FILES) {
-		loaded = LoadFont(path, false, weight) && loaded
-	}
-	return loaded ? FONT_FAMILY : undefined
+/** The game's face, or nothing where the host cannot load it and the theme's face serves. */
+function loadFont(): Nullable<string> {
+	return typeof LoadFont === "function" && LoadFont(FONT_FILE, false, FONT_WEIGHT)
+		? FONT_FAMILY
+		: undefined
 }
