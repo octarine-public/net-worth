@@ -144,7 +144,7 @@ export class MenuManager {
 		this.PlayerColors = this.Tree.AddToggle(
 			"Player colors",
 			false,
-			"Color each row in its player's color\ninstead of the team's",
+			"Color the strip beside the portrait\nin its player's color instead of the team's",
 			-1,
 			NetWorthIcons.PlayerColors
 		)
