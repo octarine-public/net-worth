@@ -152,6 +152,10 @@ export class TeamGUI {
 			return
 		}
 		const topBar = GUIInfo.TopBar.TopBar
+		if (topBar === undefined) {
+			this.hideSide(side)
+			return
+		}
 		const stripW = GUIInfo.ScaleWidth(STRIP_W)
 		const stripX = topBar.x + Math.round((topBar.Width - stripW) / 2)
 		const margin = GUIInfo.ScaleWidth(PLATE_MARGIN)

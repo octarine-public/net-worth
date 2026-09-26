@@ -195,9 +195,9 @@ new (class CNetWorth {
 		}
 		return player.IsEnemy() ? !menu.Enemy.value : !menu.Ally.value
 	}
-	private shouldPosition(...positions: Rectangle[]) {
+	private shouldPosition(...positions: Nullable<Rectangle>[]) {
 		const position = this.menu.Overlay.Position
-		return positions.some(rect => rect.Contains(position))
+		return positions.some(rect => rect !== undefined && rect.Contains(position))
 	}
 	private calculateBy(player: PlayerCustomData) {
 		return player.Hero === undefined || !this.menu.OnlyItems.value
