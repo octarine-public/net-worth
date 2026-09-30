@@ -168,7 +168,7 @@ export class MenuManager {
 		)
 		this.ModeKey.IconPath = NetWorthIcons.KeyMode
 
-		this.Overlay = new MenuSDK.OverlayMenu(this.Tree, 0, 309)
+		this.Overlay = new MenuSDK.OverlayMenu(this.Tree, 0, 309, 0, 82)
 		this.Total = new TotalNetWorthMenu(this.Tree)
 		this.Ally.OnValue(call => (this.Local.IsHidden = !call.value))
 		this.State.OnValue(call => this.Overlay.SetHidden(!call.value))
