@@ -4,6 +4,7 @@ import { KeyMode } from "./enums/KeyMode"
 import { PlayerGUI } from "./gui/player"
 import { TeamGUI } from "./gui/team"
 import { MenuManager } from "./menu"
+import { ItemsWorth } from "./worth"
 
 new (class CNetWorth {
 	private readonly menu = new MenuManager()
@@ -124,7 +125,7 @@ new (class CNetWorth {
 			if (player.Hero === undefined) {
 				continue
 			}
-			const itemCosts = this.calculateBy(player)
+			const itemCosts = ItemsWorth(player)
 			switch (player.Team) {
 				case Team.Dire:
 					dire += itemCosts
@@ -202,6 +203,6 @@ new (class CNetWorth {
 	private calculateBy(player: PlayerCustomData) {
 		return player.Hero === undefined || !this.menu.OnlyItems.value
 			? player.NetWorth
-			: player.ItemsGold
+			: ItemsWorth(player)
 	}
 })()

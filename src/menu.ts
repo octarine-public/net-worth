@@ -15,7 +15,7 @@ export class TotalNetWorthMenu {
 		this.Tree = tree.AddNode(
 			"Team totals",
 			NetWorthIcons.Teams,
-			"Net worth of Radiant and Dire\nbeside the gold in the top bar"
+			"Cost of the items of Radiant and Dire\nbeside the gold in the top bar,\nwithout gold in hand: the enemies' is not seen"
 		)
 		this.Tree.SortNodes = false
 		// the card's own switch rides its header
