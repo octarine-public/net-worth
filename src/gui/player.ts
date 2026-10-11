@@ -235,6 +235,32 @@ class ButtonView {
 	}
 }
 
+/** What a frame of the panel is built from, so a frame built from the same can be left standing. */
+class FrameStamp {
+	private readonly values: unknown[] = []
+	private index = 0
+	private same = true
+
+	public get Same() {
+		return this.same
+	}
+	public Begin() {
+		this.index = 0
+		this.same = true
+	}
+	public Put(value: unknown) {
+		if (this.values[this.index] !== value) {
+			this.values[this.index] = value
+			this.same = false
+		}
+		this.index++
+	}
+	/** Lets go of the last frame, so the next one is built whatever it is built from. */
+	public Forget() {
+		this.values.length = 0
+	}
+}
+
 export class PlayerGUI {
 	private rowCount = 0
 	private drawn = false
@@ -247,6 +273,13 @@ export class PlayerGUI {
 	/** Where the fold was last sent, or nothing before the config has said where it stands. */
 	private foldTarget: Nullable<number>
 	private readonly family: Nullable<string>
+	/** The values' colour as CSS, worded once per frame. */
+	private valueColor = ""
+	/**
+	 * The panel draws into elements of its own rather than onto its surface, so there is no frame
+	 * of the surface to hold: a frame built from the same leaves those elements as they stand.
+	 */
+	private readonly stamp = new FrameStamp()
 	private readonly rows: INetWorthRow[] = []
 	private readonly views: RowView[] = []
 	/** Each player colour as CSS, worded the first time a strip is drawn in it. */
@@ -275,6 +308,11 @@ export class PlayerGUI {
 
 	private readonly drawContent = (origin: Vector2) => {
 		this.drawn = true
+		this.pointer = this.panel.HandlesInput() ? InputManager.CursorOnScreen : undefined
+		this.valueColor = MenuSDK.CssColor(this.menu.ValueColor.SelectedColor)
+		if (this.restamp(origin) && !MenuSDK.MenuManager.IsOpen) {
+			return
+		}
 		this.layout(origin)
 	}
 
@@ -419,6 +457,43 @@ export class PlayerGUI {
 		return this.fold.Value
 	}
 
+	/**
+	 * Writes what this frame is built from, the elements it is written into among it, and answers
+	 * whether the last frame was built from the same.
+	 */
+	private restamp(origin: Vector2): boolean {
+		const stamp = this.stamp,
+			menu = this.menu
+		stamp.Begin()
+		stamp.Put(MenuSDK.MenuManager.IsOpen)
+		stamp.Put(menu.IsOpen)
+		stamp.Put(origin.x)
+		stamp.Put(origin.y)
+		stamp.Put(this.size.x)
+		stamp.Put(this.size.y)
+		stamp.Put(this.unit)
+		stamp.Put(this.fold.Value)
+		stamp.Put(this.isHovered(this.dropdownRect))
+		stamp.Put(this.valueColor)
+		stamp.Put(menu.Bar.value)
+		stamp.Put(menu.ToggleKey.assignedKeyStr)
+		stamp.Put(Menu.Localization.Version)
+		stamp.Put(MenuSDK.FontEpoch())
+		stamp.Put(this.root.element)
+		stamp.Put(this.dropdown.element)
+		stamp.Put(this.rowCount)
+		for (let i = 0; i < this.rowCount; i++) {
+			const row = this.rows[i]
+			stamp.Put(this.views[i].root.element)
+			stamp.Put(row.texture)
+			stamp.Put(row.value)
+			stamp.Put(row.palette)
+			stamp.Put(row.strip)
+			stamp.Put(row.share)
+		}
+		return stamp.Same
+	}
+
 	private layout(origin: Vector2): void {
 		const root = this.root.element
 		if (root === undefined) {
@@ -426,7 +501,7 @@ export class PlayerGUI {
 		}
 		const unit = this.unit
 		const presence = this.fold.Value
-		const valueColor = MenuSDK.CssColor(this.menu.ValueColor.SelectedColor)
+		const valueColor = this.valueColor
 		// the root is cut to the size the panel stands at, which is what folds the rows away
 		MenuSDK.WritePx(root, "left", origin.x)
 		MenuSDK.WritePx(root, "top", origin.y)
@@ -445,7 +520,6 @@ export class PlayerGUI {
 	}
 
 	private layoutHeader(origin: Vector2, unit: number, presence: number): void {
-		this.pointer = this.panel.HandlesInput() ? InputManager.CursorOnScreen : undefined
 		const dropdownW = Math.round(DROPDOWN_W * unit)
 		const headerH = Math.round(HEADER_H * unit)
 		this.dropdownRect.pos1.SetVector(origin.x, origin.y)
@@ -645,6 +719,7 @@ export class PlayerGUI {
 	}
 
 	private hide(): void {
+		this.stamp.Forget()
 		hide(this.root)
 	}
 
