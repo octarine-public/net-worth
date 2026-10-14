@@ -1,5 +1,4 @@
 import { MenuManager } from "../menu"
-import { ItemsWorth } from "../worth"
 
 /**
  * The game's own stats panel, as `dota_hud_spectator_game_stats.vcss_c` lays it out. A header of
@@ -822,7 +821,7 @@ export class PlayerGUI {
 	}
 
 	private valueOf(player: PlayerCustomData): number {
-		return this.menu.OnlyItems.value ? ItemsWorth(player) : player.NetWorth
+		return this.menu.OnlyItems.value ? player.ItemsGold : player.NetWorth
 	}
 
 	private render(): React.ReactNode {
