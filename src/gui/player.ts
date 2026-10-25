@@ -301,9 +301,13 @@ export class PlayerGUI {
 	 * How far out the rows stand, 1 for all of them and 0 for none: the root is cut to that share
 	 * of its height and the rows fade with it. Read at draw time; the tween only carries it.
 	 */
-	private readonly fold = new MenuSDK.Tween(1, () => {
-		// nothing to apply here: the layout reads the value on its next pass
-	})
+	private readonly fold = new MenuSDK.Tween(
+		1,
+		() => {
+			// nothing to apply here: the layout reads the value on its next pass
+		},
+		MenuSDK.EThemeScope.Panels
+	)
 
 	private readonly drawContent = (origin: Vector2) => {
 		this.drawn = true
