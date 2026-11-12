@@ -1,5 +1,7 @@
 // AUTO-GENERATED - do not edit.
 declare class nyx_assassin_impale extends Ability implements INuke {
+	/** Cast the way Nyx Assassin stands while he is burrowed (`Ability.RequiresFacing`). */
+	public get RequiresFacing(): boolean
 	public IsNuke(): this is INuke
 	public GetBaseAOERadiusForLevel(level: number): number
 	public GetBaseSpeedForLevel(level: number): number

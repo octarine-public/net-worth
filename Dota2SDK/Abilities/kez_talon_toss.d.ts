@@ -1,5 +1,7 @@
 // AUTO-GENERATED - do not edit.
 declare class kez_talon_toss extends Ability implements INuke {
+	/** The talon silences the units it hits. */
+	public get AppliesUnitState(): bigint
 	public IsNuke(): this is INuke
 	public GetBaseAOERadiusForLevel(level: number): number
 	public GetBaseSpeedForLevel(level: number): number

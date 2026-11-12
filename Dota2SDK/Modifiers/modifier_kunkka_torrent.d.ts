@@ -4,4 +4,5 @@ declare class modifier_kunkka_torrent extends Modifier implements IDebuff, IDisa
 	public readonly DebuffModifierName: string
 	public IsDebuff(): this is IDebuff
 	public IsDisable(): this is IDisable
+	public get IsStunDebuff(): boolean
 }

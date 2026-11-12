@@ -4,4 +4,5 @@ declare class modifier_dark_seer_vacuum extends Modifier implements IDebuff, IDi
 	public readonly DebuffModifierName: string
 	public IsDebuff(): this is IDebuff
 	public IsDisable(): this is IDisable
+	public get IsStunDebuff(): boolean
 }

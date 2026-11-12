@@ -4,4 +4,12 @@ declare class modifier_dragon_knight_corrosive_breath_dot extends Modifier imple
 	public readonly DebuffModifierName: string
 	public IsDebuff(): this is IDebuff
 	public GetTexturePath(): string
+	/**
+	 * The corrosion an attack lays: `corrosive_damage_per_second` each second, the first a second
+	 * after the attack, the last as it ends, `corrosive_duration` after the latest attack; an
+	 * attack renews the time, not the ticks'. The second is not in the data.
+	 * The 1 s between ticks is the server's own: `CDOTA_Modifier_DragonKnight_CorrosiveBreathDoT`
+	 * thinks every 1 s (server.dll).
+	 */
+	public DamageOverTime(out: DamageTicks, level: number): boolean
 }

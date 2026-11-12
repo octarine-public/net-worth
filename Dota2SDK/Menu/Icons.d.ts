@@ -1,5 +1,6 @@
 // AUTO-GENERATED - do not edit.
 declare namespace MenuSDK {
+	/** The icons the menu ships, by name, as the asset paths an `iconPath` takes. */
 	const MenuIcons: {
 		readonly Activity: "menu/ui/activity.svg"
 		readonly Anchor: "menu/ui/anchor.svg"
@@ -11,6 +12,7 @@ declare namespace MenuSDK {
 		readonly ArrowUpFromLine: "menu/ui/arrow-up-from-line.svg"
 		readonly BackdropLayers: "menu/ui/backdrop-layers.svg"
 		readonly BackdropSoft: "menu/ui/backdrop-soft.svg"
+		readonly BadgePlus: "menu/ui/badge-plus.svg"
 		readonly Ban: "menu/ui/ban.svg"
 		readonly Baseline: "menu/ui/baseline.svg"
 		readonly Blur: "menu/ui/blur.svg"
@@ -34,6 +36,9 @@ declare namespace MenuSDK {
 		readonly CircleX: "menu/ui/circle-x.svg"
 		readonly Clock: "menu/ui/clock.svg"
 		readonly ClockSeconds: "menu/ui/clock-seconds.svg"
+		readonly CloudFog: "menu/ui/cloud-fog.svg"
+		readonly CloudSun: "menu/ui/cloud-sun.svg"
+		readonly Coins: "menu/ui/coins.svg"
 		readonly ControlLabel: "menu/ui/control-label.svg"
 		readonly DividerV: "menu/ui/divider-v.svg"
 		readonly DotNew: "menu/ui/dot-new.svg"
@@ -63,11 +68,13 @@ declare namespace MenuSDK {
 		readonly LetterBold: "menu/ui/letter-bold.svg"
 		readonly LevelBars: "menu/ui/level-bars.svg"
 		readonly Lighting: "menu/ui/lighting.svg"
+		readonly Link2: "menu/ui/link-2.svg"
 		readonly ListBullet: "menu/ui/list-bullet.svg"
 		readonly ListFilter: "menu/ui/list-filter.svg"
 		readonly ListSplit: "menu/ui/list-split.svg"
 		readonly LockArea: "menu/ui/lock-area.svg"
 		readonly LockKeyhole: "menu/ui/lock-keyhole.svg"
+		readonly LockKeyholeOpen: "menu/ui/lock-keyhole-open.svg"
 		readonly Logo: "menu/ui/logo-mark.svg"
 		readonly Maximize2: "menu/ui/maximize-2.svg"
 		readonly MenuOpen: "menu/ui/menu-open.svg"
@@ -160,5 +167,6 @@ declare namespace MenuSDK {
 		readonly IconSettings: "menu/icons/settings.svg"
 		readonly IconTools: "menu/icons/tools.svg"
 	}
+	/** Any one of the {@link MenuIcons} paths. */
 	type MenuIconPath = (typeof MenuIcons)[keyof typeof MenuIcons]
 }

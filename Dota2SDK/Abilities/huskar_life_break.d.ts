@@ -5,6 +5,7 @@ declare class huskar_life_break extends Ability implements INuke {
 	public IsNuke(): this is INuke
 	public GetBaseCastRangeForLevel(level: number): number
 	public GetBaseSpeedForLevel(level: number): number
-	public GetRawDamage(target: Unit): number
+	/** `health_damage` of the target's health as it lands (`HealthOf`). */
+	public GetRawDamage(target: Unit, context?: IDamageContext): number
 	public get AppliesUnitState(): bigint
 }

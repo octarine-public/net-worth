@@ -1,10 +1,31 @@
 // AUTO-GENERATED - do not edit.
+/**
+ * Which keys and mouse buttons are held and where the cursor is, kept from the messages the game
+ * window receives. Use the `InputManager` instance.
+ */
 declare class CInputManager {
+	/**
+	 * Where the cursor is, in the screen pixels `WorldToScreen` answers in, as of the last window
+	 * message or frame. A new vector on every read.
+	 */
 	public get CursorOnScreen(): Vector2
+	/** Whether `key` is held: down from the window's key-down message until its key-up. */
 	public IsKeyDown(key: VKeys): boolean
+	/**
+	 * Whether a mouse button is held: down from its button-down or double-click message until its
+	 * button-up. Only the five buttons are tracked; `MK_SHIFT` and `MK_CONTROL` are never down.
+	 */
 	public IsMouseKeyDown(key: VMouseKeys): boolean
+	/**
+	 * Sets what {@link CursorOnScreen} answers. The SDK calls this on every window message and
+	 * every frame, so a position set by hand lasts until the next of either.
+	 */
 	public UpdateCursorOnScreen(x: number, y: number): void
 }
+/**
+ * Windows window-message codes (`WM_*`): what the `WndProc` event of `Source2SDK.NativeEvents`
+ * carries as `messageType`.
+ */
 declare const enum InputMessage {
 	WM_NULL = 0,
 	WM_CREATE = 1,
@@ -266,4 +287,36 @@ interface CInputManager {
 	QueryUnit: Nullable<Unit>
 	SelectedUnit: Nullable<Unit>
 	CursorOnWorld: Vector3
+	/**
+	 * Whether a part of the HUD that swallows a click covers the cursor (`GUIInfo.Contains`) -
+	 * the minimap, the lower HUD, the top bar, the shop: a click there lands nowhere in the world.
+	 * @example
+	 * if (!InputManager.CursorOverHUD) {
+	 * 	hero.MoveTo(InputManager.CursorOnWorld)
+	 * }
+	 */
+	readonly CursorOverHUD: boolean
+	/**
+	 * The unit a click of the player's lands on right now: the one the game itself has under the
+	 * cursor (the `weaponselect` of its user command), while the cursor stands on the world and
+	 * inside that unit's bounding box as the screen shows it. Neither alone is it: the game keeps
+	 * its pick a tick after the cursor has left the unit, longer through a fast sweep, and picks
+	 * the own hero over the lower HUD; the box reaches past the model at its corners. None when
+	 * the cursor is on no unit.
+	 * @example
+	 * if (InputManager.UnitUnderCursor === enemy) {
+	 * 	hero.AttackTarget(enemy)
+	 * }
+	 */
+	readonly UnitUnderCursor: Nullable<Unit>
+	/**
+	 * Whether a click of the player's lands on `entity` right now - a rune or an item on the
+	 * ground, which the game picks by the cursor itself rather than its `weaponselect`: the
+	 * cursor stands on the world and inside the entity's bounding box as the screen shows it.
+	 * @example
+	 * if (InputManager.IsUnderCursor(rune)) {
+	 * 	hero.PickupRune(rune)
+	 * }
+	 */
+	IsUnderCursor(entity: Entity): boolean
 }

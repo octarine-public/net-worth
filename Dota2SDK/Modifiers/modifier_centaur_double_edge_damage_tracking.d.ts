@@ -5,4 +5,5 @@ declare class modifier_centaur_double_edge_damage_tracking extends Modifier impl
 	public get StackCount(): number
 	public GetBonusDamage(_target: Unit): number
 	public IsBuff(): this is IBuff
+	public get IsPurgable(): boolean
 }

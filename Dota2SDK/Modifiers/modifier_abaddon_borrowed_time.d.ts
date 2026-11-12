@@ -6,4 +6,5 @@ declare class modifier_abaddon_borrowed_time extends Modifier implements IBuff, 
 	public IsBuff(): this is IBuff
 	public IsShield(): this is IShield
 	public PreventsDeath(_damageType: DAMAGE_TYPES): boolean
+	public get IsPurgable(): boolean
 }

@@ -6,4 +6,5 @@ declare class modifier_dazzle_nothl_projection_soul_debuff extends Modifier impl
 	public IsBuff(): this is IBuff
 	public IsDebuff(): this is IDebuff
 	public UnitPropertyChanged(changed?: boolean): boolean
+	public get IsPurgable(): boolean
 }

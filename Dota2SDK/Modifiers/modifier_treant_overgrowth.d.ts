@@ -4,4 +4,5 @@ declare class modifier_treant_overgrowth extends Modifier implements IDisable, I
 	public readonly DebuffModifierName: string
 	public IsDebuff(): this is IDebuff
 	public IsDisable(): this is IDisable
+	public get IsPurgable(): boolean
 }

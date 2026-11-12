@@ -4,4 +4,5 @@ declare class modifier_grimstroke_ink_creature_debuff extends Modifier implement
 	public readonly DebuffModifierName: string
 	public IsDebuff(): this is IDebuff
 	public IsDisable(): this is IDisable
+	public get IsPurgable(): boolean
 }

@@ -5,4 +5,5 @@ declare class modifier_item_lotus_orb_active extends Modifier implements IShield
 	public readonly ShieldModifierName: string
 	public IsBuff(): this is IBuff
 	public IsShield(): this is IShield
+	public get IsPurgable(): boolean
 }

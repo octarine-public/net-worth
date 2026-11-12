@@ -1,5 +1,7 @@
 // AUTO-GENERATED - do not edit.
-declare class weaver_shukuchi extends Ability implements INuke {
+declare class weaver_shukuchi extends Ability implements INuke, IBuff {
+	public readonly BuffModifierName = "modifier_weaver_shukuchi"
+	public IsBuff(): this is IBuff
 	public get IsInvisibility(): boolean
 	public IsNuke(): this is INuke
 	public GetBaseAOERadiusForLevel(level: number): number

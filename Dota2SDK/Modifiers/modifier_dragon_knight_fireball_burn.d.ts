@@ -3,4 +3,5 @@ declare class modifier_dragon_knight_fireball_burn extends Modifier implements I
 	public readonly IsHidden = false
 	public readonly DebuffModifierName: string
 	public IsDebuff(): this is IDebuff
+	public get IsPurgable(): boolean
 }

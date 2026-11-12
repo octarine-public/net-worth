@@ -4,4 +4,5 @@ declare class modifier_legion_commander_duel extends Modifier implements IDebuff
 	public readonly DebuffModifierName: string
 	public IsDebuff(): this is IDebuff
 	public IsShield(): this is IShield
+	public get IsPurgable(): boolean
 }

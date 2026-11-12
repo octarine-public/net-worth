@@ -3,4 +3,5 @@ declare class modifier_warlock_golem_permanent_immolation_debuff extends Modifie
 	public readonly IsHidden = false
 	public readonly DebuffModifierName: string
 	public IsDebuff(): this is IDebuff
+	public get IsPurgable(): boolean
 }

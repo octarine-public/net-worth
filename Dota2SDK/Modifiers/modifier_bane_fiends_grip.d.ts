@@ -4,4 +4,5 @@ declare class modifier_bane_fiends_grip extends Modifier implements IDebuff, IDi
 	public readonly DebuffModifierName: string
 	public IsDebuff(): this is IDebuff
 	public IsDisable(): this is IDisable
+	public get IsStunDebuff(): boolean
 }

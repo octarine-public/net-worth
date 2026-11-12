@@ -29,12 +29,34 @@ declare function fread(path: string, binary: boolean): Nullable<ArrayBuffer | st
 declare function fread(path: string, binary: true): Nullable<ArrayBuffer>
 declare function fread(path: string, binary: false): Nullable<string>
 
-// Native shared IO buffer (game-agnostic serialization scratch)
-declare var IOBuffer: Float32Array
-declare var IOBufferView: DataView
-
 // Native host high-resolution monotonic clock, in milliseconds
 declare function hrtime(): number
+
+interface Console {
+	memory: any
+	assert(condition?: boolean, ...data: any[]): void
+	clear(): void
+	count(label?: string): void
+	countReset(label?: string): void
+	debug(...data: any[]): void
+	dir(item?: any, options?: any): void
+	dirxml(...data: any[]): void
+	error(...data: any[]): void
+	exception(message?: string, ...optionalParams: any[]): void
+	group(...data: any[]): void
+	groupCollapsed(...data: any[]): void
+	groupEnd(): void
+	info(...data: any[]): void
+	log(...data: any[]): void
+	table(tabularData?: any, properties?: string[]): void
+	time(label?: string): void
+	timeEnd(label?: string): void
+	timeLog(label?: string, ...data: any[]): void
+	timeStamp(label?: string): void
+	trace(...data: any[]): void
+	warn(...data: any[]): void
+}
+declare var console: Console
 
 declare interface BigInt {
 	hasBit(bit: bigint): boolean
@@ -133,6 +155,14 @@ declare interface Math {
 		maxResult: number
 	): number
 	randomRange(min: number, max: number, skew?: number): number
+	/**
+	 * A random number between `min` and `max`, bell-shaped about the middle: a normal draw with a
+	 * sixth of the range as its deviation, drawn again while it falls outside, so the whole range
+	 * is reached and two thirds of the draws land in its middle third. `skew` raises the draw, as a
+	 * share of the range, to its power first, as {@link randomRange} does.
+	 * @example
+	 * const delay = Math.randomRangeGaussian(80, 160)
+	 */
 	randomRangeGaussian(min: number, max: number, skew?: number): number
 	/**
 	 * Converts an RGB color (channels in `[0, 255]`) to HSL (components in `[0, 1]`).
@@ -182,11 +212,3 @@ declare interface Math {
 }
 
 declare const __OCT_PACKAGE_ROOT__: string
-declare function LoadFont(path: string, isFallback: boolean, weight?: number): boolean
-declare function SendListenerPerf(line: string, took: number, gameSecond: number): void
-
-// The benchmark recorder bridge, present only in a build that carries the recorder
-// (octarine-core, OCT_ENABLE_BENCHMARK). `Managers/Benchmark.ts` wraps it; a script should reach for that.
-declare const BENCHMARK_ENABLED: boolean
-declare function benchmarkSubmit(text: string): void
-declare function benchmarkMark(label: string): void

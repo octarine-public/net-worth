@@ -3,4 +3,5 @@ declare class modifier_death_prophet_spirit_siphon_slow extends Modifier impleme
 	public readonly IsHidden = false
 	public readonly DebuffModifierName: string
 	public IsDebuff(): this is IDebuff
+	public get IsPurgable(): boolean
 }
