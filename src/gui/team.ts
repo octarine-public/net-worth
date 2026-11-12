@@ -334,10 +334,7 @@ export class TeamGUI {
 }
 
 function loadLabelFont(): Nullable<string> {
-	return typeof LoadFont === "function" &&
-		LoadFont(LABEL_FONT_FILE, false, LABEL_WEIGHT)
-		? LABEL_FAMILY
-		: undefined
+	return MenuSDK.LoadFontFace(LABEL_FONT_FILE, LABEL_WEIGHT) ? LABEL_FAMILY : undefined
 }
 
 function hexAlpha(alpha: number): string {

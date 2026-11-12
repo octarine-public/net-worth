@@ -924,7 +924,5 @@ function hide(ref: Ref): void {
 
 /** The game's face, or nothing where the host cannot load it and the theme's face serves. */
 function loadFont(): Nullable<string> {
-	return typeof LoadFont === "function" && LoadFont(FONT_FILE, false, FONT_WEIGHT)
-		? FONT_FAMILY
-		: undefined
+	return MenuSDK.LoadFontFace(FONT_FILE, FONT_WEIGHT) ? FONT_FAMILY : undefined
 }
