@@ -19,6 +19,7 @@ export const NetWorthIcons = {
 	ValueColor: Menu.Icons.Palette,
 	Key: Menu.Icons.Keyboard,
 	KeyMode: Menu.Icons.ToggleLeft,
+	TouchPanel: Menu.Icons.Move,
 	Difference: Menu.Icons.ArrowUpDown,
 	Opacity: Menu.Icons.PlateRaised,
 	TextColor: Menu.Icons.Baseline

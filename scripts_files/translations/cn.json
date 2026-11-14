@@ -20,6 +20,8 @@
 	"Hotkeys": "快捷键",
 	"Key": "按键",
 	"Key turn on/off panel": "开关面板的\n按键",
+	"Touch panel": "抓取面板",
+	"The button captures the panel\nfor dragging on the screen.\nIf the button is not set, the panel can only\nbe dragged using the mouse": "此按键可抓取面板\n以在屏幕上拖动。\n若未设置按键，\n面板只需用鼠标拖动",
 	"Key mode": "按键模式",
 	"Hold key": "按住",
 	"Toggled": "切换",

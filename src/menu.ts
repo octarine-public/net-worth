@@ -67,6 +67,7 @@ export class MenuManager {
 
 	public readonly ModeKey: Menu.Dropdown
 	public readonly ToggleKey: Menu.KeyBind
+	public readonly TouchKeyPanel: Menu.KeyBind
 
 	public readonly Tree: Menu.Node
 	public readonly Total: TotalNetWorthMenu
@@ -167,6 +168,14 @@ export class MenuManager {
 			"Key mode turn on/off panel"
 		)
 		this.ModeKey.IconPath = NetWorthIcons.KeyMode
+		this.TouchKeyPanel = treeBinds.AddKeybind(
+			"Touch panel",
+			"Ctrl",
+			"The button captures the panel\nfor dragging on the screen.\nIf the button is not set, the panel can only\nbe dragged using the mouse"
+		)
+		// ctrl is the game's own key too, so the press has to reach both
+		this.TouchKeyPanel.ClaimsKey = false
+		this.TouchKeyPanel.IconPath = NetWorthIcons.TouchPanel
 
 		this.Overlay = new MenuSDK.OverlayMenu(this.Tree, 0, 309, 0, 82)
 		this.Total = new TotalNetWorthMenu(this.Tree)

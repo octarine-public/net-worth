@@ -381,7 +381,10 @@ export class PlayerGUI {
 		this.present()
 	}
 
-	/** Header controls take their own clicks; dragging requires the main menu to be open. */
+	/**
+	 * Header controls take their own clicks. A left press takes the panel in hand with the menu
+	 * open, and in a match while the touch key is held - or always, when none is bound.
+	 */
 	public MouseKeyDown(key: VMouseKeys): boolean {
 		if (key === VMouseKeys.MK_LBUTTON && this.panel.HandlesInput()) {
 			const button = this.buttonUnderCursor()
@@ -390,7 +393,10 @@ export class PlayerGUI {
 				return false
 			}
 		}
-		return MenuSDK.MenuManager.IsOpen ? this.panel.MouseKeyDown(key) : true
+		if (key === VMouseKeys.MK_LBUTTON && !this.canDrag) {
+			return true
+		}
+		return this.panel.MouseKeyDown(key)
 	}
 
 	public MouseKeyUp(key: VMouseKeys): boolean {
@@ -423,10 +429,15 @@ export class PlayerGUI {
 		return GUIInfo.ScaleHeight(1) * this.panel.Scale
 	}
 
-	private present(): void {
-		if (!MenuSDK.MenuManager.IsOpen && this.panel.Dragging) {
-			this.panel.MouseKeyUp()
+	private get canDrag(): boolean {
+		if (MenuSDK.MenuManager.IsOpen) {
+			return true
 		}
+		const touchKey = this.menu.TouchKeyPanel
+		return touchKey.isPressed || touchKey.assignedKey <= 0
+	}
+
+	private present(): void {
 		this.grow(this.rowCount)
 		const presence = this.presence()
 		const unit = this.unit

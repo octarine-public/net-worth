@@ -20,6 +20,8 @@
 	"Hotkeys": "Горячие клавиши",
 	"Key": "Клавиша",
 	"Key turn on/off panel": "Клавиша на включение\nи выключение панели",
+	"Touch panel": "Захват панели",
+	"The button captures the panel\nfor dragging on the screen.\nIf the button is not set, the panel can only\nbe dragged using the mouse": "Кнопка захватывает панель\nдля перетаскивания по экрану.\nЕсли кнопка не задана, панель\nперетаскивается просто мышью",
 	"Key mode": "Режим клавиши",
 	"Hold key": "Удерживать",
 	"Toggled": "Переключать",
